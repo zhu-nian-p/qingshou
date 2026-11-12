@@ -1,0 +1,32 @@
+# ---------- 依赖 / 构建产物 ----------
+backend/target/
+node_modules/
+dist/
+build/
+
+# ---------- IDE ----------
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+
+# ---------- 本地敏感配置（API Key 等） ----------
+.env
+.env.local
+*.env
+
+# ---------- 本地工具链（便携 JDK / Maven / Git） ----------
+.tools/
+
+# ---------- 运行时数据 ----------
+logs/
+.run/
+*.log
+mysql-data/
+backend/uploads/
+uploads/
+backup/
+
+# ---------- 系统杂项 ----------
+.DS_Store
+Thumbs.db

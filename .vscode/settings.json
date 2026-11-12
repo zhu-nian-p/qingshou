@@ -1,0 +1,13 @@
+{
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "D:\\campus-market\\.tools\\jdk-17.0.21+9",
+      "default": true
+    }
+  ],
+  "java.jdt.ls.java.home": "D:\\campus-market\\.tools\\jdk-17.0.21+9",
+  "java.configuration.maven.userSettings": "D:\\campus-market\\.tools\\maven-settings.xml",
+  "maven.executable.path": "D:\\campus-market\\.tools\\apache-maven-3.9.16\\bin\\mvn.cmd",
+  "maven.terminal.useJavaHome": true
+}

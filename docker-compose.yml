@@ -1,0 +1,64 @@
+# ============================================================
+# 校园二手交易平台 —— 本地基础设施编排（Spring Boot 3 + MySQL 8 + Redis）
+# ------------------------------------------------------------
+# 启动：docker compose up -d
+# 查看：docker compose ps
+# 日志：docker compose logs -f mysql
+# 停止：docker compose down          （保留数据）
+# 清空：docker compose down -v       （同时删除 redis 数据卷）
+# ------------------------------------------------------------
+# 说明：
+#   1. MySQL 数据目录挂载到当前目录 ./mysql-data，容器删除后数据仍在。
+#   2. init.sql 挂载到 /docker-entrypoint-initdb.d/，
+#      仅在 ./mysql-data 为空的「首次启动」自动执行建库建表。
+#   3. Redis 不设密码，仅限本机开发环境使用，切勿直接用于生产。
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: campus-market-mysql
+    restart: unless-stopped
+    environment:
+      # root 密码（开发环境明文，生产请改为密钥注入）
+      MYSQL_ROOT_PASSWORD: "123456"
+      # 首次启动时自动创建的业务库
+      MYSQL_DATABASE: campus_market
+      TZ: Asia/Shanghai
+    command:
+      # 统一使用 utf8mb4，保证 emoji / 生僻字可正常存取
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      # 时区固定为东八区，避免 create_time 出现 8 小时偏差
+      - --default-time-zone=+08:00
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h127.0.0.1 -uroot -p123456 --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: campus-market-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # 开启 AOF 持久化，开发时重启容器不丢缓存数据；不设置密码
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  # Redis 数据使用命名卷，避免污染工作目录
+  redis-data:
+    name: campus-market-redis-data

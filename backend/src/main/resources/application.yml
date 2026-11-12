@@ -1,0 +1,71 @@
+server:
+  port: 8080
+  # Tomcat 工作目录固定到项目内，不要用系统 %TEMP%。
+  # 本机系统临时目录对普通进程会拒绝创建子目录，表现为启动时报：
+  #   Unable to create tempDir ... AccessDeniedException: C:\Users\...\Temp\tomcat.8080.xxx
+  tomcat:
+    basedir: ./.run/tomcat
+
+spring:
+  application:
+    name: qingshou
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 与本地 Docker MySQL 一致。YAML 里含 & 的连接串必须加引号。
+    url: "jdbc:mysql://localhost:3306/campus_market?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai"
+    username: root
+    password: "123456"
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3s
+  servlet:
+    multipart:
+      # 单张图片最大 5MB，单次请求最大 10MB
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+# 图片上传目录。相对路径按「启动时的工作目录」解析，默认 backend/uploads
+# 通过 /uploads/** 静态映射对外访问
+app:
+  upload-dir: uploads
+
+# 表名 order 是 MySQL 保留字。table-format / column-format 会给 MyBatis-Plus
+# 自动生成的表名、字段名加上反引号，后续订单模块不用再手写转义。
+# 自己写 @Select 等原生 SQL 时，仍然要写成 `order`。
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      table-format: "`%s`"
+      column-format: "`%s`"
+
+jwt:
+  # 本地开发密钥，至少 32 个字符。不要把这把密钥用到生产环境。
+  secret: "campus-market-jwt-secret-key-2026-dev-only"
+  expire-hours: 24
+
+# 订单超时自动取消
+# timeout-hours: 待卖家确认超过多少小时自动取消（默认 24）
+# timeout-cron : 扫描频率（默认每 10 分钟）。本地想快速验证可改成 "*/10 * * * * *"（每 10 秒）
+order:
+  timeout-hours: 24
+  timeout-cron: "0 */10 * * * *"
+
+# DeepSeek AI 文案生成
+# api-key 从环境变量 DEEPSEEK_API_KEY 读取（启动脚本会自动加载项目根目录的 .env.local）。
+# 未设置时 /api/ai/generate-desc 会返回模拟文案（mock=true），不影响其他接口。
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:}
+  base-url: https://api.deepseek.com
+  model: deepseek-chat
+
+# 置顶收费：单价（元/天）
+topup:
+  price-per-day: 1.00
