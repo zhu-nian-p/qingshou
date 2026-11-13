@@ -6,17 +6,15 @@ import com.campus.market.common.BusinessException;
 import com.campus.market.item.entity.Item;
 import com.campus.market.item.mapper.ItemMapper;
 import com.campus.market.topup.dto.ApplyTopUpRequest;
-import com.campus.market.topup.dto.TopUpOrderVO;
-import com.campus.market.topup.entity.TopUpOrder;
-import com.campus.market.topup.mapper.TopUpOrderMapper;
+import com.campus.market.topup.dto.TopUpApplyVO;
+import com.campus.market.topup.entity.TopUpApply;
+import com.campus.market.topup.mapper.TopUpApplyMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -25,10 +23,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 置顶变现：用户申请置顶 -> 管理员审核 -> 商品真正置顶。
+ * 置顶变现：用户提交申请 -> 管理员人工审核（扫码付款后）-> 商品置顶。
  * <p>
- * 状态机：0=待审核 -> 1=已支付/已生效；0 -> 2=已驳回。
- * 审核动作带原状态条件（UPDATE ... WHERE status = 0），重复审核不会重复生效。
+ * 阶梯定价：1 天 1 元，7 天 5 元，30 天 12 元。
+ * 金额只在后端计算并落库，前端传什么金额都不参与。
  */
 @Slf4j
 @Service
@@ -36,126 +34,132 @@ import java.util.stream.Collectors;
 public class TopUpService {
 
     private static final int STATUS_PENDING = 0;
-    private static final int STATUS_PAID = 1;
+    private static final int STATUS_APPROVED = 1;
     private static final int STATUS_REJECTED = 2;
 
-    private final TopUpOrderMapper topUpOrderMapper;
+    /** 天数 -> 金额（元） */
+    private static final Map<Integer, BigDecimal> TIER_PRICE = Map.of(
+            1, new BigDecimal("1.00"),
+            7, new BigDecimal("5.00"),
+            30, new BigDecimal("12.00")
+    );
+
+    private final TopUpApplyMapper topUpApplyMapper;
     private final ItemMapper itemMapper;
     private final AdminService adminService;
 
-    /** 置顶单价：元/天 */
-    @Value("${topup.price-per-day:1.00}")
-    private BigDecimal pricePerDay;
-
-    /** 用户申请置顶，生成待审核订单 */
-    public TopUpOrderVO apply(Long userId, ApplyTopUpRequest request) {
+    /** 卖家提交置顶申请，生成待审核记录 */
+    public TopUpApplyVO apply(Long userId, ApplyTopUpRequest request) {
         Item item = itemMapper.selectById(request.getItemId());
         if (item == null) {
             throw BusinessException.notFound("商品不存在");
         }
         if (!item.getSellerId().equals(userId)) {
-            throw BusinessException.forbidden("只能给自己发布的商品购买置顶");
+            throw BusinessException.forbidden("只能给自己发布的商品申请置顶");
         }
 
-        int days = request.getDays();
-        BigDecimal price = pricePerDay.multiply(BigDecimal.valueOf(days)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal amount = TIER_PRICE.get(request.getDays());
+        if (amount == null) {
+            throw BusinessException.badRequest("置顶天数只能是 1 天、7 天或 30 天");
+        }
 
-        TopUpOrder order = new TopUpOrder();
-        order.setItemId(item.getId());
-        order.setUserId(userId);
-        order.setDays(days);
-        order.setPrice(price);
-        order.setStatus(STATUS_PENDING);
-        topUpOrderMapper.insert(order);
+        TopUpApply apply = new TopUpApply();
+        apply.setItemId(item.getId());
+        apply.setUserId(userId);
+        apply.setDays(request.getDays());
+        apply.setAmount(amount);
+        apply.setStatus(STATUS_PENDING);
+        topUpApplyMapper.insert(apply);
 
-        log.info("用户 {} 申请置顶商品 {}，{} 天，金额 {}", userId, item.getId(), days, price);
-        return toVO(topUpOrderMapper.selectById(order.getId()), item);
+        log.info("用户 {} 为商品 {} 提交置顶申请：{} 天，应付 {} 元", userId, item.getId(), apply.getDays(), amount);
+        return toVO(topUpApplyMapper.selectById(apply.getId()), item);
     }
 
-    /** 我的置顶订单 */
-    public List<TopUpOrderVO> myOrders(Long userId) {
-        return toVOList(topUpOrderMapper.selectList(new LambdaQueryWrapper<TopUpOrder>()
-                .eq(TopUpOrder::getUserId, userId)
-                .orderByDesc(TopUpOrder::getCreateTime)));
+    /** 我的置顶申请 */
+    public List<TopUpApplyVO> myApplies(Long userId) {
+        return toVOList(topUpApplyMapper.selectList(new LambdaQueryWrapper<TopUpApply>()
+                .eq(TopUpApply::getUserId, userId)
+                .orderByDesc(TopUpApply::getCreateTime)));
     }
 
-    /** 管理员：待审核列表 */
-    public List<TopUpOrderVO> pendingOrders(Long adminId) {
+    /** 管理员：待审核列表（关联商品名称） */
+    public List<TopUpApplyVO> pendingApplies(Long adminId) {
         adminService.requireAdmin(adminId);
-        return toVOList(topUpOrderMapper.selectList(new LambdaQueryWrapper<TopUpOrder>()
-                .eq(TopUpOrder::getStatus, STATUS_PENDING)
-                .orderByAsc(TopUpOrder::getCreateTime)));
+        return toVOList(topUpApplyMapper.selectList(new LambdaQueryWrapper<TopUpApply>()
+                .eq(TopUpApply::getStatus, STATUS_PENDING)
+                .orderByAsc(TopUpApply::getCreateTime)));
     }
 
-    /** 管理员审核通过：订单置为已支付，商品真正置顶 */
+    /** 管理员审核通过：状态改 1，商品置顶对应天数 */
     @Transactional
-    public TopUpOrderVO approve(Long adminId, Long topUpId) {
+    public TopUpApplyVO approve(Long adminId, Long applyId) {
         adminService.requireAdmin(adminId);
-        TopUpOrder order = getExisting(topUpId);
-        if (order.getStatus() != STATUS_PENDING) {
-            throw BusinessException.badRequest("该置顶订单不是「待审核」状态");
+        TopUpApply apply = getExisting(applyId);
+        if (apply.getStatus() != STATUS_PENDING) {
+            throw BusinessException.badRequest("该置顶申请不是「待审核」状态");
         }
 
-        int updated = topUpOrderMapper.approve(topUpId);
+        int updated = topUpApplyMapper.approve(applyId);
         if (updated != 1) {
-            throw BusinessException.badRequest("订单状态已变化，请刷新后重试");
+            throw BusinessException.badRequest("申请状态已变化，请刷新后重试");
         }
 
-        LocalDateTime expireTime = LocalDateTime.now().plusDays(order.getDays());
-        itemMapper.updateTop(order.getItemId(), 1, expireTime);
-        log.info("管理员 {} 审核通过置顶订单 {}：商品 {} 置顶至 {}", adminId, topUpId, order.getItemId(), expireTime);
+        LocalDateTime expireTime = LocalDateTime.now().plusDays(apply.getDays());
+        itemMapper.updateTop(apply.getItemId(), 1, expireTime);
+        log.info("管理员 {} 通过置顶申请 {}：商品 {} 置顶至 {}", adminId, applyId, apply.getItemId(), expireTime);
 
-        return toVO(topUpOrderMapper.selectById(topUpId), itemMapper.selectById(order.getItemId()));
+        return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()));
     }
 
-    /** 管理员驳回 */
+    /** 管理员拒绝：状态改 2 */
     @Transactional
-    public TopUpOrderVO reject(Long adminId, Long topUpId) {
+    public TopUpApplyVO reject(Long adminId, Long applyId) {
         adminService.requireAdmin(adminId);
-        TopUpOrder order = getExisting(topUpId);
-        if (order.getStatus() != STATUS_PENDING) {
-            throw BusinessException.badRequest("该置顶订单不是「待审核」状态");
+        TopUpApply apply = getExisting(applyId);
+        if (apply.getStatus() != STATUS_PENDING) {
+            throw BusinessException.badRequest("该置顶申请不是「待审核」状态");
         }
-        int updated = topUpOrderMapper.reject(topUpId);
+
+        int updated = topUpApplyMapper.reject(applyId);
         if (updated != 1) {
-            throw BusinessException.badRequest("订单状态已变化，请刷新后重试");
+            throw BusinessException.badRequest("申请状态已变化，请刷新后重试");
         }
-        return toVO(topUpOrderMapper.selectById(topUpId), itemMapper.selectById(order.getItemId()));
+        return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()));
     }
 
-    private TopUpOrder getExisting(Long topUpId) {
-        TopUpOrder order = topUpOrderMapper.selectById(topUpId);
-        if (order == null) {
-            throw BusinessException.notFound("置顶订单不存在");
+    private TopUpApply getExisting(Long applyId) {
+        TopUpApply apply = topUpApplyMapper.selectById(applyId);
+        if (apply == null) {
+            throw BusinessException.notFound("置顶申请不存在");
         }
-        return order;
+        return apply;
     }
 
-    private List<TopUpOrderVO> toVOList(List<TopUpOrder> orders) {
-        if (orders.isEmpty()) {
+    private List<TopUpApplyVO> toVOList(List<TopUpApply> applies) {
+        if (applies.isEmpty()) {
             return Collections.emptyList();
         }
-        List<Long> itemIds = orders.stream().map(TopUpOrder::getItemId).distinct().toList();
+        List<Long> itemIds = applies.stream().map(TopUpApply::getItemId).distinct().toList();
         Map<Long, Item> itemMap = itemMapper.selectList(new LambdaQueryWrapper<Item>()
                         .in(Item::getId, itemIds))
                 .stream()
                 .collect(Collectors.toMap(Item::getId, Function.identity()));
-        return orders.stream().map(order -> toVO(order, itemMap.get(order.getItemId()))).toList();
+        return applies.stream().map(apply -> toVO(apply, itemMap.get(apply.getItemId()))).toList();
     }
 
-    private TopUpOrderVO toVO(TopUpOrder order, Item item) {
-        TopUpOrderVO vo = new TopUpOrderVO();
-        vo.setId(order.getId());
-        vo.setItemId(order.getItemId());
+    private TopUpApplyVO toVO(TopUpApply apply, Item item) {
+        TopUpApplyVO vo = new TopUpApplyVO();
+        vo.setId(apply.getId());
+        vo.setItemId(apply.getItemId());
         if (item != null) {
             vo.setItemTitle(item.getTitle());
         }
-        vo.setUserId(order.getUserId());
-        vo.setDays(order.getDays());
-        vo.setPrice(order.getPrice());
-        vo.setStatus(order.getStatus());
-        vo.setStatusText(statusText(order.getStatus()));
-        vo.setCreateTime(order.getCreateTime());
+        vo.setUserId(apply.getUserId());
+        vo.setDays(apply.getDays());
+        vo.setAmount(apply.getAmount());
+        vo.setStatus(apply.getStatus());
+        vo.setStatusText(statusText(apply.getStatus()));
+        vo.setCreateTime(apply.getCreateTime());
         return vo;
     }
 
@@ -165,8 +169,8 @@ public class TopUpService {
         }
         return switch (status) {
             case STATUS_PENDING -> "待审核";
-            case STATUS_PAID -> "已支付/已生效";
-            case STATUS_REJECTED -> "已驳回";
+            case STATUS_APPROVED -> "已通过";
+            case STATUS_REJECTED -> "已拒绝";
             default -> "未知";
         };
     }

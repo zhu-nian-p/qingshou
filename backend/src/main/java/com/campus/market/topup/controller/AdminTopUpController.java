@@ -3,7 +3,7 @@ package com.campus.market.topup.controller;
 import com.campus.market.common.BusinessException;
 import com.campus.market.common.Result;
 import com.campus.market.security.UserContext;
-import com.campus.market.topup.dto.TopUpOrderVO;
+import com.campus.market.topup.dto.TopUpApplyVO;
 import com.campus.market.topup.service.TopUpService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,22 +22,22 @@ public class AdminTopUpController {
 
     private final TopUpService topUpService;
 
-    /** 待审核列表 */
+    /** 待审核申请列表（status=0，含商品名称） */
     @GetMapping("/pending")
-    public Result<List<TopUpOrderVO>> pending() {
-        return Result.success(topUpService.pendingOrders(currentUserId()));
+    public Result<List<TopUpApplyVO>> pending() {
+        return Result.success(topUpService.pendingApplies(currentUserId()));
     }
 
-    /** 审核通过：订单变已支付，商品置顶生效 */
+    /** 审核通过：申请状态改 1，商品置顶对应天数 */
     @PostMapping("/{id}/approve")
-    public Result<TopUpOrderVO> approve(@PathVariable Long id) {
+    public Result<TopUpApplyVO> approve(@PathVariable Long id) {
         return Result.success("青售提示：审核通过，商品已置顶", topUpService.approve(currentUserId(), id));
     }
 
-    /** 驳回 */
+    /** 拒绝：申请状态改 2 */
     @PostMapping("/{id}/reject")
-    public Result<TopUpOrderVO> reject(@PathVariable Long id) {
-        return Result.success("青售提示：已驳回该置顶申请", topUpService.reject(currentUserId(), id));
+    public Result<TopUpApplyVO> reject(@PathVariable Long id) {
+        return Result.success("青售提示：已拒绝该置顶申请", topUpService.reject(currentUserId(), id));
     }
 
     private Long currentUserId() {

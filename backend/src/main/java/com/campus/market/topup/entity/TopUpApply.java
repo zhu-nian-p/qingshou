@@ -10,10 +10,13 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/** 置顶购买订单：0=待审核，1=已支付/已生效，2=已驳回 */
+/**
+ * 置顶申请：0=待审核，1=已通过（已置顶），2=已拒绝。
+ * 金额 amount 由后端按阶梯价计算，前端传的金额一律不认。
+ */
 @Data
-@TableName("top_up_order")
-public class TopUpOrder {
+@TableName("top_up_apply")
+public class TopUpApply {
 
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -22,15 +25,14 @@ public class TopUpOrder {
 
     private Long userId;
 
+    /** 1 / 7 / 30 天 */
     private Integer days;
 
-    private BigDecimal price;
+    /** 应付金额（元） */
+    private BigDecimal amount;
 
     private Integer status;
 
     @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private LocalDateTime createTime;
-
-    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
-    private LocalDateTime updateTime;
 }

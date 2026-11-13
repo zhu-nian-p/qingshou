@@ -148,31 +148,31 @@ CREATE TABLE IF NOT EXISTS `review` (
 
 
 -- ============================================================================
--- 5. 置顶购买订单表 top_up_order
---    用户花钱买置顶时长，先落一条「待审核」订单，管理员审核通过后才真正生效。
+-- 5. 置顶申请表 top_up_apply
+--    阶梯定价：1 天 1 元 / 7 天 5 元 / 30 天 12 元；金额由后端计算。
+--    用户提交申请 -> 管理员人工审核（扫码付款后）-> 通过后商品置顶。
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS `top_up_order` (
-  `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '置顶订单ID，主键，自增',
+CREATE TABLE IF NOT EXISTS `top_up_apply` (
+  `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '置顶申请ID，主键，自增',
   `item_id`     BIGINT UNSIGNED NOT NULL                COMMENT '要置顶的商品ID，关联 item.id',
-  `user_id`     BIGINT UNSIGNED NOT NULL                COMMENT '下单用户ID（必须是商品所有者），关联 user.id',
-  `days`        INT             NOT NULL                COMMENT '购买置顶天数，1~30',
-  `price`       DECIMAL(10,2)   NOT NULL                COMMENT '应付金额（元），按 单价/天 × 天数 计算',
-  `status`      TINYINT         NOT NULL DEFAULT 0      COMMENT '置顶订单状态：0=待审核，1=已支付/已生效，2=已驳回',
-  `create_time` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '下单时间',
-  `update_time` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  `user_id`     BIGINT UNSIGNED NOT NULL                COMMENT '申请人（必须是商品所有者），关联 user.id',
+  `days`        INT             NOT NULL                COMMENT '置顶天数，只允许 1 / 7 / 30',
+  `amount`      DECIMAL(10,2)   NOT NULL                COMMENT '应付金额（元），由后端按阶梯价计算，不信任前端',
+  `status`      TINYINT         NOT NULL DEFAULT 0      COMMENT '状态：0=待审核，1=已通过（已置顶），2=已拒绝',
+  `create_time` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
   PRIMARY KEY (`id`),
-  KEY `idx_topup_item`   (`item_id`) COMMENT '按商品查置顶记录',
-  KEY `idx_topup_user`   (`user_id`, `create_time`) COMMENT '按用户查我的置顶订单',
-  KEY `idx_topup_status` (`status`, `create_time`) COMMENT '管理员按状态查待审核列表',
-  CONSTRAINT `fk_topup_item` FOREIGN KEY (`item_id`) REFERENCES `item` (`id`) ON DELETE CASCADE  ON UPDATE RESTRICT,
-  CONSTRAINT `fk_topup_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT `chk_topup_status` CHECK (`status` IN (0, 1, 2)),
-  CONSTRAINT `chk_topup_days`   CHECK (`days` BETWEEN 1 AND 30),
-  CONSTRAINT `chk_topup_price`  CHECK (`price` >= 0)
+  KEY `idx_topup_apply_item`   (`item_id`)                  COMMENT '按商品查申请',
+  KEY `idx_topup_apply_user`   (`user_id`, `create_time`)   COMMENT '我的置顶申请',
+  KEY `idx_topup_apply_status` (`status`, `create_time`)    COMMENT '管理员待审核列表',
+  CONSTRAINT `fk_topup_apply_item` FOREIGN KEY (`item_id`) REFERENCES `item` (`id`) ON DELETE CASCADE  ON UPDATE RESTRICT,
+  CONSTRAINT `fk_topup_apply_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `chk_topup_apply_status` CHECK (`status` IN (0, 1, 2)),
+  CONSTRAINT `chk_topup_apply_days`   CHECK (`days` IN (1, 7, 30)),
+  CONSTRAINT `chk_topup_apply_amount` CHECK (`amount` >= 0)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci
-  COMMENT = '置顶购买订单表：用户申请置顶 -> 管理员审核 -> 商品置顶生效';
+  COMMENT = '置顶申请表：阶梯定价申请 -> 管理员审核 -> 商品置顶';
 
 
 -- ============================================================================

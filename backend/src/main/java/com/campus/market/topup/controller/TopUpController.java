@@ -4,7 +4,7 @@ import com.campus.market.common.BusinessException;
 import com.campus.market.common.Result;
 import com.campus.market.security.UserContext;
 import com.campus.market.topup.dto.ApplyTopUpRequest;
-import com.campus.market.topup.dto.TopUpOrderVO;
+import com.campus.market.topup.dto.TopUpApplyVO;
 import com.campus.market.topup.service.TopUpService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,16 +24,16 @@ public class TopUpController {
 
     private final TopUpService topUpService;
 
-    /** 申请置顶：生成待审核订单，价格 = 单价 × 天数 */
+    /** 申请置顶：金额由后端按阶梯价计算（1天1元 / 7天5元 / 30天12元） */
     @PostMapping("/apply")
-    public Result<TopUpOrderVO> apply(@Valid @RequestBody ApplyTopUpRequest request) {
+    public Result<TopUpApplyVO> apply(@Valid @RequestBody ApplyTopUpRequest request) {
         return Result.success("青售提示：申请已提交，等待管理员审核", topUpService.apply(currentUserId(), request));
     }
 
-    /** 我的置顶订单 */
+    /** 我的置顶申请 */
     @GetMapping("/my")
-    public Result<List<TopUpOrderVO>> myOrders() {
-        return Result.success(topUpService.myOrders(currentUserId()));
+    public Result<List<TopUpApplyVO>> myApplies() {
+        return Result.success(topUpService.myApplies(currentUserId()));
     }
 
     private Long currentUserId() {

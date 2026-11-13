@@ -85,6 +85,5 @@ deepseek:
   base-url: https://api.deepseek.com
   model: deepseek-chat
 
-# 置顶收费：单价（元/天）
-topup:
-  price-per-day: 1.00
+# 置顶收费：阶梯定价（1天1元 / 7天5元 / 30天12元）
+# 金额只在 TopUpService 中按天数计算并落库，不接受前端传入的金额。

@@ -86,8 +86,7 @@ spring:
 
 deepseek:
   api-key: ${DEEPSEEK_API_KEY:}   # 从环境变量读取，启动脚本会加载 .env.local
-topup:
-  price-per-day: 1.00             # 置顶单价（元/天）
+topup:                            # 阶梯定价：1天1元 / 7天5元 / 30天12元（后端计算，不信任前端金额）
 order:
   timeout-hours: 24               # 待卖家确认超过 24 小时自动取消
   timeout-cron: "0 */10 * * * *"  # 每 10 分钟扫描一次
@@ -111,7 +110,7 @@ MAIL_AUTH_CODE=你的SMTP授权码
 | 评价 | `POST /api/review`、`GET /api/review/user/{userId}` |
 | 上传 | `POST /api/upload`（form-data，字段 `file`） |
 | AI | `POST /api/ai/generate-desc` |
-| 置顶购买 | `POST /api/topup/apply`、`GET /api/topup/my` |
+| 置顶申请 | `POST /api/topup/apply`（body: `itemId` + `days`，金额后端按 1/7/30 天阶梯计算）、`GET /api/topup/my` |
 | 管理 | `POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject` |
 
 所有接口统一返回 `{ "code": 200, "message": "...", "data": ... }`。
