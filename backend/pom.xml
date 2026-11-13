@@ -45,6 +45,13 @@
             <version>${mybatis-plus.version}</version>
         </dependency>
 
+        <!-- 3.5.9+ 分页插件（PaginationInnerInterceptor）独立在 jsqlparser 模块里 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>${mybatis-plus.version}</version>
+        </dependency>
+
         <!-- MySQL 驱动，版本由 Spring Boot 统一管理 -->
         <dependency>
             <groupId>com.mysql</groupId>

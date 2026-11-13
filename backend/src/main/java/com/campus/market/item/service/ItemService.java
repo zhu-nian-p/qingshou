@@ -1,7 +1,9 @@
 package com.campus.market.item.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.campus.market.common.BusinessException;
+import com.campus.market.common.PageResult;
 import com.campus.market.common.SensitiveWordFilter;
 import com.campus.market.item.dto.ItemDetailVO;
 import com.campus.market.item.dto.ItemListVO;
@@ -81,8 +83,14 @@ public class ItemService {
      * @param category 分类精确匹配，可空
      * @param campus   校区精确匹配（「全部」或空表示不过滤）
      * @param sort     price_asc / price_desc / 空（默认最新）
+     * @param page     页码，从 1 开始
+     * @param size     每页条数，1~50
      */
-    public List<ItemListVO> list(String keyword, String category, String campus, String sort) {
+    public PageResult<ItemListVO> list(String keyword, String category, String campus,
+                                       String sort, long page, long size) {
+        long current = Math.max(1, page);
+        long pageSize = Math.min(Math.max(1, size), 50);
+
         LambdaQueryWrapper<Item> query = new LambdaQueryWrapper<>();
         query.eq(Item::getStatus, STATUS_ON_SALE);
 
@@ -112,7 +120,8 @@ public class ItemService {
         // 兜底：同价 / 同置顶状态时按时间倒序，保证结果稳定
         query.orderByDesc(Item::getCreateTime);
 
-        return toListVOList(itemMapper.selectList(query));
+        Page<Item> result = itemMapper.selectPage(new Page<>(current, pageSize), query);
+        return PageResult.of(result, toListVOList(result.getRecords()));
     }
 
     /**

@@ -345,7 +345,7 @@
       </div>
 
       <div class="list-head">
-        <span class="count">共 <b>{{ items.length }}</b> 件好物</span>
+        <span class="count">共 <b>{{ total }}</b> 件好物</span>
         <span class="hint" v-if="campus !== '全部'">📍 {{ campus }}校区</span>
       </div>
 
@@ -531,6 +531,7 @@
       const campus = ref('全部');
       const keyword = ref('');
       const items = ref([]);
+      const total = ref(0);
       const loading = ref(false);
       const error = ref('');
 
@@ -592,13 +593,18 @@
           const p = new URLSearchParams();
           if (keyword.value && keyword.value.trim()) p.set('keyword', keyword.value.trim());
           if (campus.value && campus.value !== '全部') p.set('campus', campus.value);
-          const url = API_BASE + '/api/item/list' + (p.toString() ? '?' + p.toString() : '');
+          // 后端已改为分页接口，先固定取第 1 页；后续无限滚动再递增 page
+          p.set('page', '1');
+          p.set('size', '10');
+          const url = API_BASE + '/api/item/list?' + p.toString();
           const res = await fetch(url);
           const json = await res.json().catch(() => ({}));
           if (!res.ok || json.code !== 200) {
             throw new Error(json.message || ('HTTP ' + res.status));
           }
-          items.value = json.data || [];
+          const pageData = json.data || {};
+          items.value = pageData.records || [];
+          total.value = pageData.total || 0;
         } catch (e) {
           items.value = [];
           error.value = e.message || String(e);
@@ -777,7 +783,7 @@
 
       return {
         user, tab, isMobile, navs, messages,
-        campuses, campus, keyword, items, loading, error,
+        campuses, campus, keyword, items, total, loading, error,
         profile, myItems, bought, sold, segments, segment, currentOrders,
         avatarText, switchTab, pickCampus, loadItems, loadProfile,
         switchSegment, segmentCount, goPublish, goDetail, logout,

@@ -106,7 +106,7 @@ MAIL_AUTH_CODE=你的SMTP授权码
 |---|---|
 | 用户 | `POST /api/user/send-code`（学校邮箱验证码）、`POST /api/user/register`（需 `emailCode`）、`POST /api/user/login`、`GET /api/user/me` |
 | 个人中心 | `GET /api/user/me/items`、`GET /api/user/me/trades` |
-| 商品 | `POST /api/item`、`GET /api/item/list`、`GET /api/item/{id}` |
+| 商品 | `POST /api/item`、`GET /api/item/list?page=1&size=10&keyword=&category=&campus=&sort=`（返回 records + total）、`GET /api/item/{id}` |
 | 订单 | `POST /api/order`、`POST /api/order/{id}/seller-confirm`、`POST /api/order/{id}/complete`、`POST /api/order/{id}/seller-reject`、`GET /api/order/buyer`、`GET /api/order/seller` |
 | 评价 | `POST /api/review`、`GET /api/review/user/{userId}` |
 | 上传 | `POST /api/upload`（form-data，字段 `file`） |

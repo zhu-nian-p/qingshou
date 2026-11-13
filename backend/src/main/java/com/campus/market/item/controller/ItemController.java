@@ -1,5 +1,6 @@
 package com.campus.market.item.controller;
 
+import com.campus.market.common.PageResult;
 import com.campus.market.common.Result;
 import com.campus.market.item.dto.ItemDetailVO;
 import com.campus.market.item.dto.ItemListVO;
@@ -16,8 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/item")
 @RequiredArgsConstructor
@@ -32,18 +31,23 @@ public class ItemController {
     }
 
     /**
-     * 商品列表 / 搜索。可匿名访问。
+     * 商品列表 / 搜索（分页）。可匿名访问。
      *
      * @param keyword  标题关键词，可空
      * @param category 分类，可空
+     * @param campus   校区（全部/上海路/前湖），可空
      * @param sort     price_asc / price_desc，不传则按最新
+     * @param page     页码，默认 1
+     * @param size     每页条数，默认 10（最大 50）
      */
     @GetMapping("/list")
-    public Result<List<ItemListVO>> list(@RequestParam(required = false) String keyword,
-                                         @RequestParam(required = false) String category,
-                                         @RequestParam(required = false) String campus,
-                                         @RequestParam(required = false) String sort) {
-        return Result.success(itemService.list(keyword, category, campus, sort));
+    public Result<PageResult<ItemListVO>> list(@RequestParam(required = false) String keyword,
+                                               @RequestParam(required = false) String category,
+                                               @RequestParam(required = false) String campus,
+                                               @RequestParam(required = false) String sort,
+                                               @RequestParam(defaultValue = "1") long page,
+                                               @RequestParam(defaultValue = "10") long size) {
+        return Result.success(itemService.list(keyword, category, campus, sort, page, size));
     }
 
     /**
