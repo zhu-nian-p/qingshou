@@ -19,6 +19,9 @@ public class ItemListVO {
     /** 卖家用户名，列表展示用（故意不用真实姓名，避免隐私泄露） */
     private String sellerName;
 
+    /** 卖家信用分，前端据此显示「🏅 高信誉」标签 */
+    private Integer sellerCredit;
+
     private String title;
 
     private BigDecimal price;
@@ -26,6 +29,9 @@ public class ItemListVO {
     private String imageUrl;
 
     private String category;
+
+    /** 所属校区：上海路 / 前湖 */
+    private String campus;
 
     /** 0=在售 1=已预订 2=已售出 3=违规下架 */
     private Integer status;

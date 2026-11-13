@@ -36,6 +36,9 @@ public class Item {
     /** 分类：数码 / 书籍 / 生活用品 等 */
     private String category;
 
+    /** 所属校区：上海路 / 前湖 */
+    private String campus;
+
     /** 卖家联系方式（微信/QQ） */
     private String contactInfo;
 

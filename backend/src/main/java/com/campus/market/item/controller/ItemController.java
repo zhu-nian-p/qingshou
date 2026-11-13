@@ -41,8 +41,9 @@ public class ItemController {
     @GetMapping("/list")
     public Result<List<ItemListVO>> list(@RequestParam(required = false) String keyword,
                                          @RequestParam(required = false) String category,
+                                         @RequestParam(required = false) String campus,
                                          @RequestParam(required = false) String sort) {
-        return Result.success(itemService.list(keyword, category, sort));
+        return Result.success(itemService.list(keyword, category, campus, sort));
     }
 
     /**

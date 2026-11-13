@@ -35,6 +35,10 @@ public class PublishItemRequest {
     @Size(max = 32, message = "分类名称不能超过 32 个字符")
     private String category;
 
+    /** 校区：上海路 / 前湖，不传默认「前湖」 */
+    @Size(max = 32, message = "校区名称不能超过 32 个字符")
+    private String campus;
+
     @Size(max = 100, message = "联系方式不能超过 100 个字符")
     private String contactInfo;
 }

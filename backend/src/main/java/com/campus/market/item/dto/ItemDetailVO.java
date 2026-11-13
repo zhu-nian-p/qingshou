@@ -28,6 +28,9 @@ public class ItemDetailVO {
 
     private String category;
 
+    /** 所属校区：上海路 / 前湖 */
+    private String campus;
+
     /** 0=在售 1=已预订 2=已售出 3=违规下架 */
     private Integer status;
 

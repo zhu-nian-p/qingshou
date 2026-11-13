@@ -28,6 +28,9 @@ public class ItemService {
     /** 只有「在售」的商品出现在列表里 */
     private static final int STATUS_ON_SALE = 0;
 
+    /** 发布时未指定校区时的默认值 */
+    private static final String DEFAULT_CAMPUS = "前湖";
+
     private final ItemMapper itemMapper;
     private final UserMapper userMapper;
 
@@ -50,6 +53,7 @@ public class ItemService {
         item.setPrice(request.getPrice());
         item.setImageUrl(trimToNull(request.getImageUrl()));
         item.setCategory(request.getCategory().trim());
+        item.setCampus(StringUtils.hasText(request.getCampus()) ? request.getCampus().trim() : DEFAULT_CAMPUS);
         item.setContactInfo(trimToNull(request.getContactInfo()));
         item.setStatus(STATUS_ON_SALE);
         item.setIsTop(0);
@@ -75,9 +79,10 @@ public class ItemService {
      *
      * @param keyword  模糊匹配标题，可空
      * @param category 分类精确匹配，可空
+     * @param campus   校区精确匹配（「全部」或空表示不过滤）
      * @param sort     price_asc / price_desc / 空（默认最新）
      */
-    public List<ItemListVO> list(String keyword, String category, String sort) {
+    public List<ItemListVO> list(String keyword, String category, String campus, String sort) {
         LambdaQueryWrapper<Item> query = new LambdaQueryWrapper<>();
         query.eq(Item::getStatus, STATUS_ON_SALE);
 
@@ -86,6 +91,9 @@ public class ItemService {
         }
         if (StringUtils.hasText(category)) {
             query.eq(Item::getCategory, category.trim());
+        }
+        if (StringUtils.hasText(campus) && !"全部".equals(campus.trim())) {
+            query.eq(Item::getCampus, campus.trim());
         }
 
         // 第一优先级：置顶在前
@@ -124,6 +132,7 @@ public class ItemService {
         vo.setPrice(item.getPrice());
         vo.setImageUrl(item.getImageUrl());
         vo.setCategory(item.getCategory());
+        vo.setCampus(item.getCampus());
         vo.setStatus(item.getStatus());
         vo.setIsTop(item.getIsTop());
         vo.setTopExpireTime(item.getTopExpireTime());
@@ -153,14 +162,18 @@ public class ItemService {
             return List.of();
         }
         List<Long> sellerIds = items.stream().map(Item::getSellerId).distinct().toList();
-        Map<Long, String> sellerNames = userMapper.selectList(new LambdaQueryWrapper<User>()
+        Map<Long, User> sellerMap = userMapper.selectList(new LambdaQueryWrapper<User>()
                         .in(User::getId, sellerIds))
                 .stream()
-                .collect(Collectors.toMap(User::getId, User::getUsername, (a, b) -> a));
+                .collect(Collectors.toMap(User::getId, Function.identity(), (a, b) -> a));
 
         return items.stream().map(item -> {
             ItemListVO vo = toListVO(item);
-            vo.setSellerName(sellerNames.get(item.getSellerId()));
+            User seller = sellerMap.get(item.getSellerId());
+            if (seller != null) {
+                vo.setSellerName(seller.getUsername());
+                vo.setSellerCredit(seller.getCreditScore());
+            }
             return vo;
         }).toList();
     }
@@ -173,6 +186,7 @@ public class ItemService {
         vo.setPrice(item.getPrice());
         vo.setImageUrl(item.getImageUrl());
         vo.setCategory(item.getCategory());
+        vo.setCampus(item.getCampus());
         vo.setStatus(item.getStatus());
         vo.setIsTop(item.getIsTop());
         vo.setCreateTime(item.getCreateTime());

@@ -2,21 +2,13 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>青售 · 校园二手</title>
-
-<!-- Element Plus 样式 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.css">
-
 <style>
   :root {
-    --teal: #14b8a6;
-    --teal-dark: #0f766e;
-    --teal-light: #2dd4bf;
-    --mint: #f0fdfa;
-    --ink: #0f2e2a;
-    --gray: #6b7f7c;
-    /* 把 Element Plus 的主色改成青绿 */
+    --teal: #14b8a6; --teal-dark: #0f766e; --mint: #f0fdfa; --ink: #0f2e2a; --gray: #6b7f7c;
+    --line: #e3f6f1;
     --el-color-primary: #14b8a6;
     --el-color-primary-light-3: #4dd4c4;
     --el-color-primary-light-5: #7fe3d7;
@@ -24,392 +16,631 @@
     --el-color-primary-light-9: #e6fffa;
     --el-color-primary-dark-2: #0f9b8d;
   }
-
   * { box-sizing: border-box; }
-
+  [v-cloak] { display: none; }
+  html, body { margin: 0; min-height: 100%; }
   body {
-    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
                  "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     color: var(--ink);
     background:
-      radial-gradient(1200px 500px at 10% -10%, #ccfbf1 0%, rgba(204, 251, 241, 0) 60%),
-      radial-gradient(900px 400px at 100% 0%, #d1fae5 0%, rgba(209, 250, 229, 0) 55%),
+      radial-gradient(900px 420px at 8% -10%, #ccfbf1 0%, rgba(204,251,241,0) 60%),
+      radial-gradient(800px 380px at 100% 0%, #d1fae5 0%, rgba(209,250,229,0) 55%),
       #f7fffd;
-    min-height: 100vh;
   }
-
-  /* ---------- 顶部 ---------- */
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.82);
-    border-bottom: 1px solid #d7f3ee;
-  }
-  .header-inner {
-    max-width: 1120px;
-    margin: 0 auto;
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-  }
-  .brand { display: flex; align-items: baseline; gap: 12px; }
+  button { font-family: inherit; }
   .logo {
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: 2px;
+    font-weight: 800; letter-spacing: 2px;
     background: linear-gradient(135deg, #0d9488, #2dd4bf 60%, #67e8f9);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .tagline { font-size: 13px; color: var(--gray); letter-spacing: 1px; }
-  .badge {
-    font-size: 12px;
-    color: var(--teal-dark);
-    background: var(--mint);
-    border: 1px solid #b8f0e6;
-    padding: 6px 12px;
-    border-radius: 999px;
-    white-space: nowrap;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
   }
 
-  /* ---------- 主体 ---------- */
-  .container { max-width: 1120px; margin: 0 auto; padding: 28px 20px 60px; }
-
-  .hero { text-align: center; padding: 26px 10px 22px; }
-  .hero h1 {
-    margin: 0 0 8px;
-    font-size: 30px;
-    letter-spacing: 1px;
-    color: var(--teal-dark);
+  /* ---------- 桌面侧边栏 ---------- */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 232px;
+    background: #ffffff; border-right: 1px solid var(--line);
+    padding: 22px 16px 18px; display: flex; flex-direction: column; gap: 16px; z-index: 20;
   }
-  .hero p { margin: 0; color: var(--gray); font-size: 14px; }
-
-  .toolbar {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    background: #ffffff;
-    border: 1px solid #d9f3ee;
-    border-radius: 16px;
-    padding: 14px;
-    box-shadow: 0 10px 30px rgba(20, 184, 166, 0.08);
+  .side-brand .logo { font-size: 30px; }
+  .side-brand .tagline { font-size: 11px; color: #9bb5b0; letter-spacing: 1px; margin-top: 2px; }
+  .publish-btn {
+    border: none; border-radius: 14px; padding: 12px 14px; cursor: pointer;
+    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff;
+    font-size: 14px; font-weight: 700; letter-spacing: .5px;
+    box-shadow: 0 10px 22px rgba(13,148,136,.24);
   }
-  .toolbar .el-input { flex: 1 1 auto; }
-  .toolbar .cat-select { width: 160px; flex: 0 0 auto; }
-  .search-icon { font-size: 15px; }
+  .publish-btn:active { transform: translateY(1px); }
+  .side-nav { display: flex; flex-direction: column; gap: 6px; }
+  .side-nav button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    border: none; background: transparent; color: #4b6b66;
+    padding: 12px 14px; border-radius: 12px; font-size: 15px; cursor: pointer; text-align: left;
+    transition: background .15s ease;
+  }
+  .side-nav button:hover { background: #f3fdfa; }
+  .side-nav button.active { background: #e6fffa; color: var(--teal-dark); font-weight: 700; }
+  .side-nav .ico { font-size: 17px; }
+  .side-user {
+    margin-top: auto; display: flex; align-items: center; gap: 10px;
+    padding: 10px; border-radius: 14px; background: #f3fdfa; cursor: pointer;
+  }
+  .avatar {
+    width: 46px; height: 46px; border-radius: 14px; flex: 0 0 auto;
+    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px;
+  }
+  .avatar.big { width: 62px; height: 62px; border-radius: 18px; font-size: 24px; }
+  .avatar.small { width: 32px; height: 32px; border-radius: 10px; font-size: 14px; }
+  .su-info { min-width: 0; flex: 1; }
+  .su-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .su-credit { font-size: 11px; color: #8aa; margin-top: 2px; }
+  .su-logout {
+    border: none; background: transparent; cursor: pointer; font-size: 16px; color: #b7c9c5; padding: 4px;
+  }
+
+  /* ---------- 主内容 ---------- */
+  .main { padding: 26px 28px 60px; max-width: 1280px; }
+  .main:not(.mobile) { margin-left: 232px; }
+  .main.mobile { padding: 10px 12px 92px; }
+
+  /* 移动端顶栏 */
+  .mobile-header {
+    position: sticky; top: 0; z-index: 15;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: rgba(255,255,255,.9);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .mobile-header .logo { font-size: 22px; }
+  .mh-right { display: flex; align-items: center; gap: 10px; }
+  .campus-chip {
+    font-size: 11px; color: var(--teal-dark); background: var(--mint);
+    border: 1px solid #b8f0e6; border-radius: 999px; padding: 4px 10px;
+  }
+
+  /* 主页 */
+  .hero { text-align: center; padding: 10px 0 20px; }
+  .hero h1 { margin: 0 0 6px; font-size: 26px; color: var(--teal-dark); letter-spacing: 1px; }
+  .hero p { margin: 0; font-size: 13px; color: var(--gray); }
+
+  .search-row { display: flex; gap: 10px; align-items: center; }
+  .search-row .el-input { flex: 1 1 auto; }
   .search-btn {
-    flex: 0 0 auto;
-    padding: 0 26px;
-    border: none;
+    flex: 0 0 auto; border: none; color: #fff; font-weight: 600;
     background: linear-gradient(135deg, #14b8a6, #0d9488);
-    color: #fff;
-    font-weight: 600;
   }
-  .search-btn:hover { opacity: 0.92; background: linear-gradient(135deg, #0d9488, #0f766e); }
+
+  .campus-tabs { display: flex; gap: 8px; margin: 14px 0 6px; overflow-x: auto; padding-bottom: 2px; }
+  .campus-tabs::-webkit-scrollbar { display: none; }
+  .campus-tabs button {
+    border: 1px solid #d9f3ee; background: #fff; color: #5d8b84;
+    padding: 7px 18px; border-radius: 999px; font-size: 13px; white-space: nowrap; cursor: pointer;
+    transition: all .16s ease;
+  }
+  .campus-tabs button.active {
+    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff;
+    border-color: transparent; font-weight: 600;
+  }
 
   .list-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 22px 4px 14px;
-    font-size: 14px;
-    color: var(--gray);
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 14px 2px 12px; font-size: 13px; color: var(--gray);
   }
-  .list-head b { color: var(--teal-dark); font-size: 16px; }
-  .hint { font-size: 12px; color: #9bb5b0; }
+  .list-head b { color: var(--teal-dark); font-size: 15px; }
+  .hint { font-size: 12px; }
 
-  /* ---------- 卡片网格 ---------- */
-  .content { min-height: 320px; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
-    gap: 18px;
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 768px) {
+    .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
   }
 
   .card {
-    background: #ffffff;
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid #e3f6f1;
-    box-shadow: 0 6px 18px rgba(13, 148, 136, 0.06);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-    cursor: default;
+    background: #fff; border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; box-shadow: 0 6px 16px rgba(13,148,136,.05);
+    transition: transform .18s ease, box-shadow .18s ease;
   }
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 14px 30px rgba(13, 148, 136, 0.14);
+  @media (min-width: 768px) {
+    .card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(13,148,136,.13); }
   }
-
-  .thumb {
-    position: relative;
-    aspect-ratio: 4 / 3;
-    background: #e6fffa;
-    overflow: hidden;
+  .thumb { position: relative; aspect-ratio: 1 / 1; background: #e6fffa; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .badges { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .badge {
+    font-size: 10px; font-weight: 700; color: #fff; padding: 3px 8px; border-radius: 999px;
+    box-shadow: 0 3px 8px rgba(0,0,0,.16); letter-spacing: .3px;
   }
-  .thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform 0.3s ease;
-  }
-  .card:hover .thumb img { transform: scale(1.04); }
-
-  .top-badge {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 999px;
-    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35);
-    letter-spacing: 0.5px;
+  .badge.top { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .badge.credit { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .campus-tag {
+    position: absolute; right: 8px; bottom: 8px;
+    background: rgba(13,148,136,.82); color: #fff; font-size: 10px;
+    padding: 2px 8px; border-radius: 999px;
   }
 
-  .cat-tag {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    background: rgba(13, 148, 136, 0.82);
-    color: #fff;
-    font-size: 11px;
-    padding: 3px 9px;
-    border-radius: 999px;
-    backdrop-filter: blur(2px);
-  }
-
-  .card-body { padding: 12px 14px 14px; }
+  .card-body { padding: 8px 10px 10px; }
   .title {
-    margin: 0 0 10px;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.45;
-    height: 2.9em;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    color: #123c37;
+    margin: 0 0 6px; font-size: 13px; font-weight: 600; line-height: 1.4;
+    height: 2.8em; overflow: hidden; display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: #164e45;
   }
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .price {
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--teal-dark);
-    letter-spacing: 0.5px;
-  }
-  .price i { font-style: normal; font-size: 13px; margin-right: 1px; }
+  @media (min-width: 768px) { .title { font-size: 14px; } }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .price { font-size: 16px; font-weight: 800; color: var(--teal-dark); }
+  .price i { font-style: normal; font-size: 11px; margin-right: 1px; }
+  @media (min-width: 768px) { .price { font-size: 18px; } }
   .seller {
-    font-size: 12px;
-    color: var(--gray);
-    max-width: 52%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 11px; color: #8aa; max-width: 55%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
-  /* ---------- 错误 / 空状态 ---------- */
-  .error-box {
-    margin: 40px auto;
-    max-width: 520px;
-    text-align: center;
-    background: #fff;
-    border: 1px solid #ffe1e1;
-    border-radius: 16px;
-    padding: 26px 22px;
+  /* 通用状态 */
+  .state-box { text-align: center; padding: 56px 20px; }
+  .state-box.small { padding: 34px 16px; }
+  .state-box .emoji { font-size: 44px; margin-bottom: 10px; }
+  .state-box .state-title { font-size: 16px; font-weight: 700; color: var(--teal-dark); margin-bottom: 6px; }
+  .state-box .state-desc { font-size: 13px; color: var(--gray); margin-bottom: 16px; line-height: 1.6; }
+
+  /* 消息 */
+  .page-title { font-size: 20px; margin: 4px 0 16px; }
+  .msg-list { display: flex; flex-direction: column; gap: 10px; max-width: 720px; }
+  .msg { display: flex; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .msg-icon {
+    width: 38px; height: 38px; border-radius: 12px; background: var(--mint); flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
   }
-  .error-title { font-size: 18px; font-weight: 700; color: #b91c1c; margin-bottom: 8px; }
-  .error-msg { font-size: 13px; color: #7f1d1d; margin-bottom: 12px; word-break: break-all; }
-  .error-tip {
-    text-align: left;
-    font-size: 13px;
-    color: var(--gray);
-    background: #f8fafc;
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 16px;
-    line-height: 1.9;
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-head { display: flex; justify-content: space-between; gap: 10px; }
+  .msg-title { font-size: 14px; font-weight: 600; }
+  .msg-time { font-size: 11px; color: #b7c9c5; white-space: nowrap; }
+  .msg-desc { font-size: 12px; color: #8aa; margin-top: 4px; line-height: 1.6; }
+
+  /* 我的 */
+  .profile-card {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 18px;
   }
-  .error-tip code {
-    background: #e6fffa;
-    color: var(--teal-dark);
-    padding: 1px 6px;
-    border-radius: 4px;
+  .p-info { min-width: 0; flex: 1; }
+  .p-name { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .role-tag { font-size: 10px; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; padding: 2px 8px; border-radius: 999px; }
+  .p-sub { font-size: 12px; color: #8aa; margin-top: 2px; }
+  .p-meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: #9bb5b0; margin-top: 6px; }
+  .credit-box { text-align: center; flex: 0 0 auto; }
+  .credit-num { font-size: 24px; font-weight: 800; color: var(--teal-dark); }
+  .credit-label { font-size: 11px; color: #8aa; }
+
+  .segments { display: flex; gap: 8px; margin: 18px 0 12px; overflow-x: auto; }
+  .segments::-webkit-scrollbar { display: none; }
+  .segments button {
+    border: none; background: #eefbf8; color: #4f8b83; padding: 9px 16px;
+    border-radius: 12px; font-size: 13px; cursor: pointer; white-space: nowrap;
+  }
+  .segments button.active { background: #14b8a6; color: #fff; font-weight: 700; }
+  .seg-count {
+    margin-left: 6px; background: rgba(255,255,255,.3); color: inherit;
+    padding: 0 6px; border-radius: 999px; font-size: 11px;
   }
 
-  .footer {
-    text-align: center;
-    font-size: 12px;
-    color: #9bb5b0;
-    padding: 26px 10px 34px;
+  .mini-list, .order-list { display: flex; flex-direction: column; gap: 10px; }
+  .mini-item, .order {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px;
   }
+  .mini-thumb { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; background: #e6fffa; flex: 0 0 auto; }
+  .mini-body { min-width: 0; flex: 1; }
+  .mini-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mini-sub { font-size: 12px; color: #8aa; margin-top: 3px; }
+  .mini-flag {
+    font-size: 11px; padding: 3px 9px; border-radius: 999px;
+    background: #e6fffa; color: var(--teal-dark); flex: 0 0 auto;
+  }
+  .mini-flag.s1 { background: #fff7ed; color: #c2410c; }
+  .mini-flag.s2 { background: #f1f5f9; color: #64748b; }
+  .mini-flag.s3 { background: #fef2f2; color: #b91c1c; }
 
-  @media (max-width: 720px) {
-    .toolbar { flex-wrap: wrap; }
-    .toolbar .el-input { flex: 1 1 100%; }
-    .toolbar .cat-select { flex: 1 1 auto; width: auto; }
-    .search-btn { flex: 1 1 100%; }
-    .hero h1 { font-size: 23px; }
-    .logo { font-size: 24px; }
-    .badge { display: none; }
+  .order { display: block; }
+  .order-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .order-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .order-status { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #e6fffa; color: var(--teal-dark); white-space: nowrap; }
+  .order-status.os1 { background: #f1f5f9; color: #475569; }
+  .order-status.os2 { background: #fef2f2; color: #b91c1c; }
+  .order-status.os3 { background: #fff7ed; color: #c2410c; }
+  .order-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #8aa; margin-top: 8px; }
+
+  .logout-btn {
+    width: 100%; margin-top: 26px; padding: 13px; border-radius: 14px;
+    border: 1px solid #fecaca; background: #fff5f5; color: #dc2626;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .version { text-align: center; font-size: 11px; color: #b7c9c5; margin-top: 14px; }
+
+  /* 移动端底部导航 + 悬浮发布 */
+  .bottom-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 60px; z-index: 30;
+    background: rgba(255,255,255,.96); border-top: 1px solid var(--line);
+    display: flex; padding-bottom: env(safe-area-inset-bottom);
+    backdrop-filter: blur(10px);
+  }
+  .bottom-nav button {
+    flex: 1; border: none; background: transparent; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; color: #9bb5b0; font-size: 11px;
+  }
+  .bottom-nav button.active { color: var(--teal-dark); font-weight: 700; }
+  .bottom-nav .ico { font-size: 19px; }
+  .fab {
+    position: fixed; right: 18px; bottom: 76px; z-index: 31;
+    width: 54px; height: 54px; border-radius: 50%; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff;
+    font-size: 28px; line-height: 1; box-shadow: 0 10px 24px rgba(13,148,136,.35);
+  }
+  .fab:active { transform: scale(.96); }
+
+  @media (min-width: 768px) {
+    .page-title { font-size: 24px; }
+    .profile-card { padding: 22px; }
   }
 </style>
 </head>
 
 <body>
-<div id="app">
-  <!-- 顶部 -->
-  <header class="header">
-    <div class="header-inner">
-      <div class="brand">
-        <div class="logo">青售</div>
-        <div class="tagline">校园二手 · 清爽交易</div>
+<div id="app" v-cloak>
+  <!-- 桌面侧边栏 -->
+  <aside class="sidebar" v-if="!isMobile">
+    <div class="side-brand">
+      <div class="logo">青售</div>
+      <div class="tagline">校园二手 · 清爽交易</div>
+    </div>
+    <button class="publish-btn" @click="goPublish">＋ 发布闲置</button>
+    <nav class="side-nav">
+      <button v-for="n in navs" :key="n.key" :class="{ active: tab === n.key }" @click="switchTab(n.key)">
+        <span class="ico">{{ n.icon }}</span>{{ n.label }}
+      </button>
+    </nav>
+    <div class="side-user" v-if="user" @click="switchTab('profile')">
+      <div class="avatar">{{ avatarText }}</div>
+      <div class="su-info">
+        <div class="su-name">{{ profile.realName || user.realName || user.username }}</div>
+        <div class="su-credit">信用分 {{ profile.creditScore ?? '—' }}</div>
       </div>
-      <div class="badge">🌿 只做校园里的好物</div>
+      <button class="su-logout" @click.stop="logout" title="退出登录">⏏</button>
+    </div>
+  </aside>
+
+  <!-- 移动端顶栏 -->
+  <header class="mobile-header" v-if="isMobile">
+    <div class="logo">青售</div>
+    <div class="mh-right">
+      <span class="campus-chip">{{ campus === '全部' ? '全部校区' : campus + '校区' }}</span>
+      <div class="avatar small" v-if="user" @click="switchTab('profile')">{{ avatarText }}</div>
     </div>
   </header>
 
-  <main class="container">
-    <section class="hero">
-      <h1>把闲置，交给需要的人</h1>
-      <p>同校面交 · 信用可见 · 置顶好物优先展示</p>
-    </section>
-
-    <!-- 搜索 + 分类 -->
-    <section class="toolbar">
-      <el-input
-        v-model="keyword"
-        size="large"
-        clearable
-        placeholder="搜索：自行车、台灯、考研书…"
-        @keyup.enter="load"
-        @clear="load">
-        <template #prefix><span class="search-icon">🔍</span></template>
-      </el-input>
-
-      <el-select
-        v-model="category"
-        class="cat-select"
-        size="large"
-        clearable
-        placeholder="全部分类"
-        @change="load">
-        <el-option v-for="c in categories" :key="c" :label="c" :value="c"></el-option>
-      </el-select>
-
-      <el-button size="large" class="search-btn" @click="load">搜索</el-button>
-    </section>
-
-    <div class="list-head">
-      <span class="count">共 <b>{{ items.length }}</b> 件好物</span>
-      <span class="hint" v-if="keyword || category">
-        筛选：{{ [keyword, category].filter(Boolean).join(' / ') }}
-      </span>
-    </div>
-
-    <!-- 列表 -->
-    <div v-loading="loading" element-loading-text="青售加载中…" class="content">
-      <!-- 错误态 -->
-      <div v-if="error" class="error-box">
-        <div class="error-title">😥 商品列表加载失败</div>
-        <div class="error-msg">{{ error }}</div>
-        <div class="error-tip">
-          1. 确认后端已启动：<code>http://localhost:8080</code><br>
-          2. 确认后端开启了跨域（本项目已配置 CorsConfig，全开放）<br>
-          3. 如果是直接双击 HTML（file:// 打开）仍失败，改用本地静态服务：
-          <br>&nbsp;&nbsp;&nbsp;<code>cd D:\campus-market\frontend</code>
-          <br>&nbsp;&nbsp;&nbsp;<code>python -m http.server 5173</code>
-          <br>&nbsp;&nbsp;&nbsp;然后访问 <code>http://localhost:5173</code>
-        </div>
-        <el-button type="primary" @click="load">重试</el-button>
+  <main :class="['main', { mobile: isMobile }]">
+    <!-- ================= 主页 ================= -->
+    <section v-if="tab === 'home'">
+      <div class="hero" v-if="!isMobile">
+        <h1>把闲置，交给需要的人</h1>
+        <p>同校面交 · 信用可见 · 置顶好物优先展示</p>
       </div>
 
-      <!-- 空态 -->
-      <el-empty v-else-if="!loading && items.length === 0" description="暂时没有符合条件的商品"></el-empty>
+      <div class="search-row">
+        <el-input
+          v-model="keyword"
+          size="large"
+          clearable
+          placeholder="搜索：自行车、台灯、考研书…"
+          @keyup.enter="loadItems"
+          @clear="loadItems">
+          <template #prefix><span>🔍</span></template>
+        </el-input>
+        <el-button class="search-btn" size="large" @click="loadItems">搜索</el-button>
+      </div>
 
-      <!-- 商品卡片 -->
-      <div v-else class="grid">
-        <article class="card" v-for="item in items" :key="item.id">
-          <div class="thumb">
-            <img :src="imgSrc(item.imageUrl)" :alt="item.title" @error="onImgError" loading="lazy">
-            <span v-if="item.isTop === 1" class="top-badge">🔥 置顶</span>
-            <span class="cat-tag">{{ item.category }}</span>
+      <div class="campus-tabs">
+        <button v-for="c in campuses" :key="c" :class="{ active: campus === c }" @click="pickCampus(c)">
+          {{ c }}
+        </button>
+      </div>
+
+      <div class="list-head">
+        <span class="count">共 <b>{{ items.length }}</b> 件好物</span>
+        <span class="hint" v-if="campus !== '全部'">📍 {{ campus }}校区</span>
+      </div>
+
+      <div v-loading="loading" element-loading-text="青售加载中…" style="min-height: 260px">
+        <!-- 错误 -->
+        <div v-if="error" class="state-box">
+          <div class="emoji">😥</div>
+          <div class="state-title">加载失败了</div>
+          <div class="state-desc">{{ error }}</div>
+          <el-button type="primary" round @click="loadItems">重试</el-button>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else-if="!loading && items.length === 0" class="state-box">
+          <div class="emoji">🌱</div>
+          <div class="state-title">这里空空如也</div>
+          <div class="state-desc">快去发布第一个闲置吧～</div>
+          <el-button type="primary" round @click="goPublish">发布闲置</el-button>
+        </div>
+
+        <!-- 商品网格 -->
+        <div v-else class="grid">
+          <article class="card" v-for="item in items" :key="item.id">
+            <div class="thumb">
+              <img :src="imgSrc(item.imageUrl)" :alt="item.title" @error="onImgError" loading="lazy">
+              <div class="badges">
+                <span v-if="item.isTop === 1" class="badge top">🔥 急售</span>
+                <span v-if="(item.sellerCredit || 0) >= 110" class="badge credit">🏅 高信誉</span>
+              </div>
+              <span class="campus-tag" v-if="item.campus">{{ item.campus }}</span>
+            </div>
+            <div class="card-body">
+              <h3 class="title">{{ item.title }}</h3>
+              <div class="row">
+                <span class="price"><i>¥</i>{{ formatPrice(item.price) }}</span>
+                <span class="seller">👤 {{ item.sellerName || ('用户' + item.sellerId) }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 消息 ================= -->
+    <section v-else-if="tab === 'messages'">
+      <h2 class="page-title">消息</h2>
+      <div class="msg-list">
+        <div class="msg" v-for="m in messages" :key="m.id">
+          <div class="msg-icon">{{ m.icon }}</div>
+          <div class="msg-body">
+            <div class="msg-head">
+              <span class="msg-title">{{ m.title }}</span>
+              <span class="msg-time">{{ m.time }}</span>
+            </div>
+            <div class="msg-desc">{{ m.desc }}</div>
           </div>
-          <div class="card-body">
-            <h3 class="title">{{ item.title }}</h3>
-            <div class="row">
-              <span class="price"><i>¥</i>{{ formatPrice(item.price) }}</span>
-              <span class="seller">👤 {{ item.sellerName || ('用户' + item.sellerId) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 我的 ================= -->
+    <section v-else>
+      <h2 class="page-title">我的</h2>
+
+      <div class="profile-card">
+        <div class="avatar big">{{ avatarText }}</div>
+        <div class="p-info">
+          <div class="p-name">
+            {{ profile.realName || user?.realName || user?.username || '青售用户' }}
+            <span class="role-tag" v-if="profile.role === 2">管理员</span>
+          </div>
+          <div class="p-sub">@{{ profile.username || user?.username || '—' }}</div>
+          <div class="p-meta">
+            <span>学号 {{ profile.studentId || '—' }}</span>
+            <span>{{ profile.schoolEmail || '未绑定邮箱' }}</span>
+          </div>
+        </div>
+        <div class="credit-box">
+          <div class="credit-num">{{ profile.creditScore ?? '—' }}</div>
+          <div class="credit-label">信用分</div>
+        </div>
+      </div>
+
+      <div class="segments">
+        <button v-for="s in segments" :key="s.key" :class="{ active: segment === s.key }" @click="switchSegment(s.key)">
+          {{ s.label }}<span class="seg-count">{{ segmentCount(s.key) }}</span>
+        </button>
+      </div>
+
+      <!-- 我发布的 -->
+      <div v-if="segment === 'items'">
+        <div v-if="myItems.length === 0" class="state-box small">
+          <div class="emoji">📦</div>
+          <div class="state-desc">还没发布过商品，去首页发第一个吧～</div>
+        </div>
+        <div v-else class="mini-list">
+          <div class="mini-item" v-for="it in myItems" :key="it.id">
+            <img :src="imgSrc(it.imageUrl)" @error="onImgError" class="mini-thumb" alt="">
+            <div class="mini-body">
+              <div class="mini-title">{{ it.title }}</div>
+              <div class="mini-sub">¥{{ formatPrice(it.price) }} · {{ it.campus || '前湖' }}校区</div>
+            </div>
+            <span class="mini-flag" :class="'s' + it.status">{{ itemStatusText(it.status) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 我买到的 / 我卖出的 -->
+      <div v-else>
+        <div v-if="currentOrders.length === 0" class="state-box small">
+          <div class="emoji">🧾</div>
+          <div class="state-desc">{{ segment === 'bought' ? '还没有买到的宝贝' : '还没有卖出的宝贝' }}</div>
+        </div>
+        <div v-else class="order-list">
+          <div class="order" v-for="o in currentOrders" :key="o.id">
+            <div class="order-head">
+              <span class="order-title">{{ o.itemTitle }}</span>
+              <span class="order-status" :class="'os' + o.status">{{ o.statusText }}</span>
+            </div>
+            <div class="order-meta">
+              <span>¥{{ formatPrice(o.itemPrice) }}</span>
+              <span>📍 {{ o.tradeLocation }}</span>
+              <span>{{ formatTime(o.createTime) }}</span>
             </div>
           </div>
-        </article>
+        </div>
       </div>
-    </div>
+
+      <button class="logout-btn" @click="logout">退出登录</button>
+      <div class="version">青售 v0.1 · 校园二手交易平台</div>
+    </section>
   </main>
 
-  <footer class="footer">青售 · 校园二手交易平台 · 同校面交更安心</footer>
+  <!-- 移动端底部导航 -->
+  <nav class="bottom-nav" v-if="isMobile">
+    <button v-for="n in navs" :key="n.key" :class="{ active: tab === n.key }" @click="switchTab(n.key)">
+      <span class="ico">{{ n.icon }}</span><span class="lbl">{{ n.label }}</span>
+    </button>
+  </nav>
+
+  <!-- 移动端悬浮发布按钮 -->
+  <button class="fab" v-if="isMobile && tab === 'home'" @click="goPublish">＋</button>
 </div>
 
-<!-- Vue 3 + Element Plus -->
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.full.min.js"></script>
-
 <script>
-  const { createApp, ref, onMounted } = Vue;
-
-  // 后端地址：换成你的服务器地址即可
+  const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
   const API_BASE = 'http://localhost:8080';
+  const TOKEN_KEY = 'qingshou_token';
+  const USER_KEY = 'qingshou_user';
 
-  // 图片加载失败时的占位图（内联 SVG，不依赖网络）
   const PLACEHOLDER =
     'data:image/svg+xml;utf8,' +
     encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">' +
-      '<rect width="400" height="300" fill="#e6fffa"/>' +
-      '<text x="200" y="155" font-size="18" fill="#14b8a6" text-anchor="middle" ' +
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">' +
+      '<rect width="400" height="400" fill="#e6fffa"/>' +
+      '<text x="200" y="205" font-size="18" fill="#14b8a6" text-anchor="middle" ' +
       'font-family="sans-serif">青售 · 暂无图片</text></svg>'
     );
 
+  // 未登录直接回登录页
+  if (!localStorage.getItem(TOKEN_KEY)) {
+    location.replace('login.html');
+  }
+
   createApp({
     setup() {
+      const user = ref(JSON.parse(localStorage.getItem(USER_KEY) || 'null'));
+      const tab = ref('home');
+      const isMobile = ref(window.innerWidth < 768);
+
+      const campuses = ['全部', '上海路', '前湖'];
+      const campus = ref('全部');
       const keyword = ref('');
-      const category = ref('');
       const items = ref([]);
       const loading = ref(false);
       const error = ref('');
 
-      const categories = ['数码', '书籍', '生活用品', '运动户外', '其他'];
+      const profile = ref({});
+      const myItems = ref([]);
+      const bought = ref([]);
+      const sold = ref([]);
+      const segment = ref('items');
+      const segments = [
+        { key: 'items', label: '我发布的' },
+        { key: 'bought', label: '我买到的' },
+        { key: 'sold', label: '我卖出的' }
+      ];
 
-      async function load() {
+      const navs = [
+        { key: 'home', label: '主页', icon: '🏠' },
+        { key: 'messages', label: '消息', icon: '💬' },
+        { key: 'profile', label: '我的', icon: '👤' }
+      ];
+
+      const messages = [
+        { id: 1, icon: '🛒', title: '你的商品「iPad 第 9 代 64G」有新订单', desc: '买家 buyer01 已下单，请尽快在「我卖出的」里确认交易', time: '刚刚' },
+        { id: 2, icon: '✅', title: '交易完成，信用分 +1', desc: '与 buyer01 的面交订单已完成，感谢使用青售', time: '2 小时前' },
+        { id: 3, icon: '🔥', title: '置顶申请已通过', desc: '你的商品已置顶 7 天，首页曝光量提升中', time: '昨天' },
+        { id: 4, icon: '🤖', title: '青售小助手', desc: '发布商品时可以使用 AI 生成描述，试试看～', time: '2 天前' }
+      ];
+
+      const avatarText = computed(() => {
+        const name = profile.value.realName || (user.value && user.value.realName) ||
+                     (user.value && user.value.username) || '青';
+        return String(name).slice(0, 1).toUpperCase();
+      });
+
+      const currentOrders = computed(() => segment.value === 'bought' ? bought.value : sold.value);
+
+      function authHeaders() {
+        return { 'Authorization': 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '') };
+      }
+
+      async function apiGet(path) {
+        const res = await fetch(API_BASE + path, { headers: authHeaders() });
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          location.replace('login.html');
+          throw new Error('登录已过期，请重新登录');
+        }
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.code !== 200) {
+          throw new Error(json.message || ('请求失败（HTTP ' + res.status + '）'));
+        }
+        return json.data;
+      }
+
+      async function loadItems() {
         loading.value = true;
         error.value = '';
         try {
-          const params = new URLSearchParams();
-          if (keyword.value && keyword.value.trim()) params.set('keyword', keyword.value.trim());
-          if (category.value) params.set('category', category.value);
-
-          const url = API_BASE + '/api/item/list' + (params.toString() ? '?' + params.toString() : '');
+          const p = new URLSearchParams();
+          if (keyword.value && keyword.value.trim()) p.set('keyword', keyword.value.trim());
+          if (campus.value && campus.value !== '全部') p.set('campus', campus.value);
+          const url = API_BASE + '/api/item/list' + (p.toString() ? '?' + p.toString() : '');
           const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-
-          const json = await res.json();
-          if (json.code !== 200) throw new Error(json.message || '接口返回异常');
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || ('HTTP ' + res.status));
+          }
           items.value = json.data || [];
         } catch (e) {
-          error.value = e && e.message ? e.message : String(e);
           items.value = [];
+          error.value = e.message || String(e);
         } finally {
           loading.value = false;
         }
+      }
+
+      async function loadProfile() {
+        try {
+          const [me, mine, trades] = await Promise.all([
+            apiGet('/api/user/me'),
+            apiGet('/api/user/me/items'),
+            apiGet('/api/user/me/trades')
+          ]);
+          profile.value = me || {};
+          myItems.value = mine || [];
+          bought.value = (trades && trades.bought) || [];
+          sold.value = (trades && trades.sold) || [];
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message);
+        }
+      }
+
+      function switchTab(t) {
+        tab.value = t;
+        if (t === 'profile') loadProfile();
+        window.scrollTo({ top: 0 });
+      }
+
+      function pickCampus(c) {
+        campus.value = c;
+        loadItems();
+      }
+
+      function switchSegment(s) {
+        segment.value = s;
+      }
+
+      function segmentCount(key) {
+        if (key === 'items') return myItems.value.length;
+        if (key === 'bought') return bought.value.length;
+        return sold.value.length;
+      }
+
+      function goPublish() {
+        ElementPlus.ElMessage.info('发布页面正在开发中，敬请期待～');
+      }
+
+      function logout() {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        location.replace('login.html');
       }
 
       function formatPrice(price) {
@@ -417,7 +648,15 @@
         return Number.isFinite(n) ? n.toFixed(2) : price;
       }
 
-      // 后端返回的可能是 /uploads/xxx 相对路径
+      function formatTime(t) {
+        if (!t) return '';
+        return String(t).replace('T', ' ').slice(0, 16);
+      }
+
+      function itemStatusText(status) {
+        return { 0: '在售', 1: '已预订', 2: '已售出', 3: '已下架' }[status] || '未知';
+      }
+
       function imgSrc(url) {
         if (!url) return PLACEHOLDER;
         if (/^(https?:|data:)/i.test(url)) return url;
@@ -429,11 +668,26 @@
         e.target.onerror = null;
       }
 
-      onMounted(load);
+      function onResize() {
+        isMobile.value = window.innerWidth < 768;
+      }
+
+      onMounted(() => {
+        loadItems();
+        loadProfile();
+        window.addEventListener('resize', onResize);
+      });
+      onUnmounted(() => {
+        window.removeEventListener('resize', onResize);
+      });
 
       return {
-        keyword, category, categories, items, loading, error,
-        load, formatPrice, imgSrc, onImgError
+        user, tab, isMobile, navs, messages,
+        campuses, campus, keyword, items, loading, error,
+        profile, myItems, bought, sold, segments, segment, currentOrders,
+        avatarText, switchTab, pickCampus, loadItems, loadProfile,
+        switchSegment, segmentCount, goPublish, logout,
+        formatPrice, formatTime, itemStatusText, imgSrc, onImgError
       };
     }
   }).use(ElementPlus).mount('#app');

@@ -29,7 +29,9 @@ campus-market/
 │   │   ├── security/            JWT 拦截器、上下文
 │   │   └── common/              统一返回、异常处理、敏感词
 │   └── src/main/resources/application.yml
-├── frontend/index.html          商品首页（单文件）
+├── frontend/
+│   ├── login.html               登录 / 注册（学校邮箱验证码，60 秒倒计时）
+│   └── index.html               主应用（响应式：底部导航 / 桌面侧边栏）
 ├── sql/                         增量迁移脚本（002 ~ 006）
 ├── docs/                        文档与截图
 ├── init.sql                     全量建库建表脚本
@@ -53,6 +55,8 @@ campus-market/
 3. **启动后端**：双击 `start-backend.cmd`
    看到 `Tomcat started on port 8080` 和 `Started CampusMarketApplication` 即成功
 4. **启动前端**：双击 `start-frontend.cmd`（自动打开 http://localhost:5173/index.html）
+   - 未登录会自动跳转到 `login.html`
+   - 测试账号：`alice01 / 123456`（普通用户）、`admin01 / 123456`（管理员）
 5. 关闭时：先关闭前端窗口，再双击 `stop-backend.cmd` 停止后端
 
 > 后端日志在 `logs\startup-*.log`，启动失败时把最后 30 行发出来即可定位。
@@ -111,6 +115,15 @@ MAIL_AUTH_CODE=你的SMTP授权码
 | 管理 | `POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject` |
 
 所有接口统一返回 `{ "code": 200, "message": "...", "data": ... }`。
+
+## 前端页面
+
+| 页面 | 说明 |
+|---|---|
+| `login.html` | 登录 / 注册 Tab；注册含用户名、密码、真实姓名、学号、学校邮箱、验证码；「获取验证码」60 秒倒计时；成功后 token 存 localStorage 并跳转主应用 |
+| `index.html` | 主应用，响应式：手机底部导航 + 悬浮发布，桌面左侧固定边栏；主页搜索 + 校区 Tab（全部/上海路/前湖）；商品卡片 2 列 / 4 列自适应，🔥 急售、🏅 高信誉标签；消息（模拟）；我的（资料 / 信用分 / 我发布的 / 我买到的 / 我卖出的 / 退出登录） |
+
+前端通过 `http://localhost:8080` 直连后端，CORS 已全开放。建议用 `start-frontend.cmd` 起静态服务（`python -m http.server 5173`），不要直接双击 HTML。
 
 ## 学校邮箱验证码注册
 
