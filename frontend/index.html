@@ -283,6 +283,13 @@
     border-radius: 12px; padding: 10px 12px;
   }
   .topup-note b { color: var(--teal-dark); }
+  .wechat-id {
+    display: inline-block; font-weight: 800; color: var(--teal-dark);
+    background: #e6fffa; border-radius: 6px; padding: 0 6px; margin: 0 2px;
+  }
+  .copy-wx-btn { vertical-align: baseline; margin-left: 2px; }
+  .topup-footer { display: flex; gap: 10px; align-items: center; }
+  .topup-submit { flex: 1 1 auto; height: 44px; font-size: 15px; font-weight: 700; }
 
   .order { display: block; }
   .order-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -578,12 +585,19 @@
     </div>
 
     <div class="topup-note">
-      扫码支付后点击下方按钮提交。由于是人工审核，请添加管理员微信：<b>qingshou-admin</b> 发送截图，通常在 1 小时内为您置顶。
+      扫码支付后点击下方按钮提交。由于是人工审核，请添加管理员微信：
+      <span class="wechat-id">{{ adminWechat }}</span>
+      <el-button class="copy-wx-btn" link type="primary" size="small" @click="copyAdminWechat">复制微信号</el-button>
+      发送截图，通常在 1 小时内完成。
     </div>
 
     <template #footer>
-      <el-button round @click="topupDialogVisible = false">取消</el-button>
-      <el-button type="primary" round :loading="topupSubmitting" @click="submitTopup">我已支付，提交申请</el-button>
+      <div class="topup-footer">
+        <el-button round @click="topupDialogVisible = false">取消</el-button>
+        <el-button class="topup-submit" type="primary" round :loading="topupSubmitting" @click="submitTopup">
+          我已支付，提交申请
+        </el-button>
+      </div>
     </template>
   </el-dialog>
 </div>
@@ -634,6 +648,9 @@
       const segment = ref('items');
 
       // ---- 申请置顶弹窗 ----
+      // 管理员微信号：换成你自己的真实微信号即可
+      const ADMIN_WECHAT = 'qingshou-admin';
+      const adminWechat = ref(ADMIN_WECHAT);
       const topupDialogVisible = ref(false);
       const topupItem = ref(null);
       const selectedDays = ref(1);
@@ -956,6 +973,57 @@
         e.target.onerror = null;
       }
 
+      async function copyAdminWechat() {
+        const text = adminWechat.value || '';
+        const ok = await copyText(text);
+        if (ok) {
+          ElementPlus.ElMessage.success('微信号已复制');
+        } else {
+          ElementPlus.ElMessage.error('复制失败，请手动长按复制');
+        }
+      }
+
+      /**
+       * 复制文本：优先 Clipboard API；API 不可用 / 被拒绝 / 卡住超过 400ms 时，
+       * 自动降级到 textarea + execCommand，避免按钮点了没反应。
+       */
+      function copyText(text) {
+        return new Promise((resolve) => {
+          let settled = false;
+          const finish = (value) => {
+            if (settled) return;
+            settled = true;
+            resolve(value);
+          };
+          const fallback = () => {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            let ok = false;
+            try {
+              ok = document.execCommand('copy');
+            } catch (e) {
+              ok = false;
+            } finally {
+              document.body.removeChild(ta);
+            }
+            finish(ok);
+          };
+
+          if (navigator.clipboard && window.isSecureContext) {
+            const timer = setTimeout(fallback, 400);
+            navigator.clipboard.writeText(text)
+              .then(() => { clearTimeout(timer); finish(true); })
+              .catch(() => { clearTimeout(timer); fallback(); });
+          } else {
+            fallback();
+          }
+        });
+      }
+
       async function submitTopup() {
         if (!topupItem.value) return;
         topupSubmitting.value = true;
@@ -1036,6 +1104,7 @@
         campuses, campus, keyword, items, total, page, loading, loadingMore, noMore, error,
         profile, myItems, bought, sold, segments, segment, currentOrders,
         topupDialogVisible, topupItem, selectedDays, topupSubmitting, plans, qrSrc, planPrice,
+        adminWechat, copyAdminWechat,
         openTopup, submitTopup, onQrError,
         avatarText, switchTab, pickCampus, loadItems, reload, loadProfile,
         switchSegment, segmentCount, goPublish, goDetail, logout,
