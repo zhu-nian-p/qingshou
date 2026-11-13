@@ -181,6 +181,15 @@
   .state-box .state-title { font-size: 16px; font-weight: 700; color: var(--teal-dark); margin-bottom: 6px; }
   .state-box .state-desc { font-size: 13px; color: var(--gray); margin-bottom: 16px; line-height: 1.6; }
 
+  /* 无限滚动底部状态 */
+  .load-footer { text-align: center; padding: 20px 10px 8px; font-size: 12px; color: #9bb5b0; }
+  .dot-spinner {
+    display: inline-block; width: 14px; height: 14px; margin-right: 6px;
+    border: 2px solid #c8eee7; border-top-color: #14b8a6; border-radius: 50%;
+    vertical-align: -2px; animation: qs-spin .8s linear infinite;
+  }
+  @keyframes qs-spin { to { transform: rotate(360deg); } }
+
   /* 消息 */
   .page-title { font-size: 20px; margin: 4px 0 16px; }
   .msg-list { display: flex; flex-direction: column; gap: 10px; max-width: 720px; }
@@ -331,11 +340,11 @@
           size="large"
           clearable
           placeholder="搜索：自行车、台灯、考研书…"
-          @keyup.enter="loadItems"
-          @clear="loadItems">
+          @keyup.enter="reload"
+          @clear="reload">
           <template #prefix><span>🔍</span></template>
         </el-input>
-        <el-button class="search-btn" size="large" @click="loadItems">搜索</el-button>
+        <el-button class="search-btn" size="large" @click="reload">搜索</el-button>
       </div>
 
       <div class="campus-tabs">
@@ -355,7 +364,7 @@
           <div class="emoji">😥</div>
           <div class="state-title">加载失败了</div>
           <div class="state-desc">{{ error }}</div>
-          <el-button type="primary" round @click="loadItems">重试</el-button>
+          <el-button type="primary" round @click="reload">重试</el-button>
         </div>
 
         <!-- 空状态 -->
@@ -385,6 +394,13 @@
               </div>
             </div>
           </article>
+        </div>
+
+        <!-- 无限滚动底部状态 -->
+        <div class="load-footer" v-if="!error && items.length > 0">
+          <span v-if="loadingMore"><span class="dot-spinner"></span>加载中…</span>
+          <span v-else-if="noMore">没有更多啦，去发一个闲置吧~</span>
+          <span v-else>上滑加载更多</span>
         </div>
       </div>
     </section>
@@ -532,7 +548,10 @@
       const keyword = ref('');
       const items = ref([]);
       const total = ref(0);
+      const page = ref(1);
       const loading = ref(false);
+      const loadingMore = ref(false);
+      const noMore = ref(false);
       const error = ref('');
 
       const profile = ref({});
@@ -586,30 +605,93 @@
         return json.data;
       }
 
-      async function loadItems() {
-        loading.value = true;
-        error.value = '';
+      const PAGE_SIZE = 10;
+      let requestSeq = 0;
+
+      function buildListUrl(pageNo) {
+        const p = new URLSearchParams();
+        if (keyword.value && keyword.value.trim()) p.set('keyword', keyword.value.trim());
+        if (campus.value && campus.value !== '全部') p.set('campus', campus.value);
+        p.set('page', String(pageNo));
+        p.set('size', String(PAGE_SIZE));
+        return API_BASE + '/api/item/list?' + p.toString();
+      }
+
+      /**
+       * 加载商品列表。
+       * reset=true：重置页码并清空列表（切校区 / 搜索 / 首次进入）
+       * reset=false：追加下一页（无限滚动）
+       *
+       * 用 requestSeq 丢弃过期响应，配合 loading / loadingMore 标记，
+       * 保证快速滑动、快速切 Tab 时不会重复请求或把旧数据追加到新列表里。
+       */
+      async function loadItems(reset = true) {
+        if (!reset) {
+          if (loading.value || loadingMore.value || noMore.value) return;
+          loadingMore.value = true;
+        } else {
+          requestSeq += 1;
+          page.value = 1;
+          items.value = [];
+          total.value = 0;
+          noMore.value = false;
+          loadingMore.value = false;
+          error.value = '';
+          loading.value = true;
+        }
+
+        const seq = requestSeq;
+        const targetPage = reset ? 1 : page.value;
+
         try {
-          const p = new URLSearchParams();
-          if (keyword.value && keyword.value.trim()) p.set('keyword', keyword.value.trim());
-          if (campus.value && campus.value !== '全部') p.set('campus', campus.value);
-          // 后端已改为分页接口，先固定取第 1 页；后续无限滚动再递增 page
-          p.set('page', '1');
-          p.set('size', '10');
-          const url = API_BASE + '/api/item/list?' + p.toString();
-          const res = await fetch(url);
+          const res = await fetch(buildListUrl(targetPage));
           const json = await res.json().catch(() => ({}));
+          if (seq !== requestSeq) return; // 过期响应：用户已经切了校区 / 搜了新词
+
           if (!res.ok || json.code !== 200) {
             throw new Error(json.message || ('HTTP ' + res.status));
           }
-          const pageData = json.data || {};
-          items.value = pageData.records || [];
-          total.value = pageData.total || 0;
+
+          const data = json.data || {};
+          const records = data.records || [];
+          if (reset) {
+            items.value = records;
+          } else {
+            items.value = items.value.concat(records);
+          }
+          total.value = data.total || 0;
+          page.value = (data.page || targetPage) + 1;
+          noMore.value = items.value.length >= total.value
+                  || records.length === 0
+                  || (data.pages && data.page >= data.pages);
         } catch (e) {
-          items.value = [];
-          error.value = e.message || String(e);
+          if (seq !== requestSeq) return;
+          if (reset) {
+            items.value = [];
+            error.value = e.message || String(e);
+          } else {
+            ElementPlus.ElMessage.error('加载更多失败，请稍后重试');
+          }
         } finally {
-          loading.value = false;
+          if (seq === requestSeq) {
+            loading.value = false;
+            loadingMore.value = false;
+          }
+        }
+      }
+
+      /** 重置列表并回到第一页 */
+      function reload() {
+        loadItems(true);
+      }
+
+      /** 滚动到底部自动加载下一页 */
+      function onWindowScroll() {
+        if (tab.value !== 'home') return;
+        if (loading.value || loadingMore.value || noMore.value) return;
+        const doc = document.documentElement;
+        if (window.innerHeight + window.scrollY >= doc.scrollHeight - 140) {
+          loadItems(false);
         }
       }
 
@@ -661,7 +743,7 @@
 
       function pickCampus(c) {
         campus.value = c;
-        loadItems();
+        reload();
       }
 
       function switchSegment(s) {
@@ -773,19 +855,21 @@
       }
 
       onMounted(() => {
-        loadItems();
+        reload();
         loadProfile();
         window.addEventListener('resize', onResize);
+        window.addEventListener('scroll', onWindowScroll, { passive: true });
       });
       onUnmounted(() => {
         window.removeEventListener('resize', onResize);
+        window.removeEventListener('scroll', onWindowScroll);
       });
 
       return {
         user, tab, isMobile, navs, messages,
-        campuses, campus, keyword, items, total, loading, error,
+        campuses, campus, keyword, items, total, page, loading, loadingMore, noMore, error,
         profile, myItems, bought, sold, segments, segment, currentOrders,
-        avatarText, switchTab, pickCampus, loadItems, loadProfile,
+        avatarText, switchTab, pickCampus, loadItems, reload, loadProfile,
         switchSegment, segmentCount, goPublish, goDetail, logout,
         orderStatusText, canAct, confirmTrade, rejectTrade, completeTrade,
         formatPrice, formatTime, itemStatusText, imgSrc, onImgError
