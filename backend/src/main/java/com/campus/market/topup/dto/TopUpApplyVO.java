@@ -18,6 +18,9 @@ public class TopUpApplyVO {
 
     private Long userId;
 
+    /** 申请人展示名（真实姓名 + 用户名） */
+    private String userName;
+
     private Integer days;
 
     /** 后端计算的应付金额 */

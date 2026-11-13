@@ -9,6 +9,7 @@ import com.campus.market.item.dto.ItemListVO;
 import com.campus.market.security.UserContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,8 +17,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
- * 管理后台接口，全部需要管理员角色（role=1）。
+ * 管理后台接口，全部需要管理员角色（role=2）。
  * 开发环境管理员账号：admin01 / 123456
  */
 @RestController
@@ -48,6 +51,12 @@ public class AdminController {
     @PostMapping("/items/{id}/untop")
     public Result<ItemListVO> untopItem(@PathVariable Long id) {
         return Result.success("青售提示：已取消置顶", adminService.untopItem(currentUserId(), id));
+    }
+
+    /** 全部用户（用户封禁列表） */
+    @GetMapping("/users")
+    public Result<List<AdminUserVO>> listUsers() {
+        return Result.success(adminService.listUsers(currentUserId()));
     }
 
     /** 封禁用户 */

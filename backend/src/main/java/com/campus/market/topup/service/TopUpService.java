@@ -9,6 +9,8 @@ import com.campus.market.topup.dto.ApplyTopUpRequest;
 import com.campus.market.topup.dto.TopUpApplyVO;
 import com.campus.market.topup.entity.TopUpApply;
 import com.campus.market.topup.mapper.TopUpApplyMapper;
+import com.campus.market.user.entity.User;
+import com.campus.market.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ public class TopUpService {
 
     private final TopUpApplyMapper topUpApplyMapper;
     private final ItemMapper itemMapper;
+    private final UserMapper userMapper;
     private final AdminService adminService;
 
     /** 卖家提交置顶申请，生成待审核记录 */
@@ -72,7 +75,7 @@ public class TopUpService {
         topUpApplyMapper.insert(apply);
 
         log.info("用户 {} 为商品 {} 提交置顶申请：{} 天，应付 {} 元", userId, item.getId(), apply.getDays(), amount);
-        return toVO(topUpApplyMapper.selectById(apply.getId()), item);
+        return toVO(topUpApplyMapper.selectById(apply.getId()), item, userMapper.selectById(userId));
     }
 
     /** 我的置顶申请 */
@@ -108,7 +111,8 @@ public class TopUpService {
         itemMapper.updateTop(apply.getItemId(), 1, expireTime);
         log.info("管理员 {} 通过置顶申请 {}：商品 {} 置顶至 {}", adminId, applyId, apply.getItemId(), expireTime);
 
-        return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()));
+        return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()),
+                userMapper.selectById(apply.getUserId()));
     }
 
     /** 管理员拒绝：状态改 2，并记录拒绝原因 */
@@ -132,7 +136,8 @@ public class TopUpService {
             throw BusinessException.badRequest("申请状态已变化，请刷新后重试");
         }
         log.info("管理员 {} 拒绝置顶申请 {}，原因：{}", adminId, applyId, trimmed);
-        return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()));
+        return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()),
+                userMapper.selectById(apply.getUserId()));
     }
 
     private TopUpApply getExisting(Long applyId) {
@@ -152,10 +157,19 @@ public class TopUpService {
                         .in(Item::getId, itemIds))
                 .stream()
                 .collect(Collectors.toMap(Item::getId, Function.identity()));
-        return applies.stream().map(apply -> toVO(apply, itemMap.get(apply.getItemId()))).toList();
+
+        List<Long> userIds = applies.stream().map(TopUpApply::getUserId).distinct().toList();
+        Map<Long, User> userMap = userMapper.selectList(new LambdaQueryWrapper<User>()
+                        .in(User::getId, userIds))
+                .stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return applies.stream()
+                .map(apply -> toVO(apply, itemMap.get(apply.getItemId()), userMap.get(apply.getUserId())))
+                .toList();
     }
 
-    private TopUpApplyVO toVO(TopUpApply apply, Item item) {
+    private TopUpApplyVO toVO(TopUpApply apply, Item item, User user) {
         TopUpApplyVO vo = new TopUpApplyVO();
         vo.setId(apply.getId());
         vo.setItemId(apply.getItemId());
@@ -163,6 +177,12 @@ public class TopUpService {
             vo.setItemTitle(item.getTitle());
         }
         vo.setUserId(apply.getUserId());
+        if (user != null) {
+            String realName = user.getRealName();
+            vo.setUserName(realName == null || realName.isBlank()
+                    ? user.getUsername()
+                    : realName + "（" + user.getUsername() + "）");
+        }
         vo.setDays(apply.getDays());
         vo.setAmount(apply.getAmount());
         vo.setStatus(apply.getStatus());

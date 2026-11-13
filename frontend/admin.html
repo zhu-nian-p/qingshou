@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>置顶审核后台 · 青售</title>
+<title>青售 · 管理后台</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.css">
 <style>
   :root {
@@ -24,124 +24,242 @@
                  "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     color: var(--ink);
     background:
-      radial-gradient(900px 420px at 8% -10%, #ccfbf1 0%, rgba(204,251,241,0) 60%),
+      radial-gradient(1000px 480px at 6% -12%, #ccfbf1 0%, rgba(204,251,241,0) 60%),
       #f7fffd;
   }
+
   .topbar {
-    position: sticky; top: 0; z-index: 10;
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 16px; background: rgba(255,255,255,.92);
-    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; background: rgba(255,255,255,.92);
+    backdrop-filter: blur(12px); border-bottom: 1px solid var(--line);
   }
   .topbar .back {
     border: none; background: #e6fffa; color: var(--teal-dark);
     width: 34px; height: 34px; border-radius: 10px; font-size: 16px; cursor: pointer;
   }
-  .topbar h1 { font-size: 17px; margin: 0; }
-  .topbar .logo {
-    margin-left: auto; font-weight: 800; font-size: 20px; letter-spacing: 2px;
+  .topbar .brand {
+    font-weight: 800; font-size: 19px; letter-spacing: 2px;
     background: linear-gradient(135deg, #0d9488, #2dd4bf 60%, #67e8f9);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
-
-  .wrap { max-width: 720px; margin: 0 auto; padding: 16px 14px 40px; }
-
-  .summary {
-    display: flex; align-items: center; gap: 12px;
-    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff;
-    border-radius: 18px; padding: 18px 20px;
-    box-shadow: 0 12px 28px rgba(13,148,136,.25);
+  .admin-badge {
+    font-size: 11px; color: #c2410c; background: #fff7ed;
+    border: 1px solid #fed7aa; border-radius: 999px; padding: 2px 9px;
   }
-  .sum-num { font-size: 32px; font-weight: 800; line-height: 1; }
-  .sum-label { font-size: 13px; opacity: .92; }
-  .refresh { margin-left: auto; }
+  .top-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .admin-name { font-size: 12px; color: var(--gray); }
 
-  .apply-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-  .apply {
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 48px; }
+
+  /* 统计卡片 */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .stat {
     background: #fff; border: 1px solid var(--line); border-radius: 16px;
-    padding: 16px; box-shadow: 0 6px 16px rgba(13,148,136,.05);
+    padding: 16px 18px; box-shadow: 0 8px 22px rgba(13,148,136,.05);
   }
-  .apply-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .apply-title { font-size: 15px; font-weight: 700; line-height: 1.5; }
-  .apply-amount { font-size: 20px; font-weight: 800; color: var(--teal-dark); white-space: nowrap; }
-  .apply-meta {
-    display: flex; flex-wrap: wrap; gap: 12px;
-    font-size: 12px; color: #8aa; margin-top: 10px;
-  }
-  .apply-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .stat .num { font-size: 26px; font-weight: 800; color: var(--teal-dark); line-height: 1.1; }
+  .stat .label { font-size: 12px; color: #8aa; margin-top: 4px; }
+  .stat.warn .num { color: #d97706; }
+  .stat.danger .num { color: #dc2626; }
 
-  .note {
-    margin-top: 18px; font-size: 12px; line-height: 1.7; color: #6b7f7c;
-    background: #f4fffd; border: 1px dashed #b8f0e6; border-radius: 12px; padding: 10px 12px;
+  /* 主面板 */
+  .panel {
+    background: #fff; border: 1px solid var(--line); border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(13,148,136,.06); overflow: hidden;
   }
+  .panel-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 18px 0; border-bottom: 1px solid var(--line);
+  }
+  .panel-head .hint { margin-left: auto; font-size: 12px; color: #9bb5b0; }
+  .panel-body { padding: 14px 18px 18px; }
 
-  .state-box { text-align: center; padding: 60px 20px; color: var(--gray); }
-  .state-box .emoji { font-size: 44px; margin-bottom: 10px; }
-  .state-title { font-size: 16px; font-weight: 700; color: var(--teal-dark); margin-bottom: 6px; }
-  .state-desc { font-size: 13px; margin-bottom: 14px; }
-  .dot-spinner {
-    display: inline-block; width: 16px; height: 16px; margin-right: 8px;
-    border: 2px solid #c8eee7; border-top-color: #14b8a6; border-radius: 50%;
-    vertical-align: -3px; animation: qs-spin .8s linear infinite;
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .toolbar .title { font-size: 14px; font-weight: 700; color: #164e45; }
+  .toolbar .spacer { margin-left: auto; }
+
+  .el-tabs__item { font-weight: 600; }
+  .el-tabs__header { margin: 0; }
+  .el-table { --el-table-border-color: #eef7f4; border-radius: 12px; }
+  .el-table th.el-table__cell { background: #f6fffd !important; color: #36635c; font-weight: 600; }
+  .cell-empty { text-align: center; padding: 40px 10px; color: #9bb5b0; }
+  .cell-empty .emoji { font-size: 36px; margin-bottom: 8px; }
+
+  .amount { font-weight: 800; color: var(--teal-dark); }
+  .muted { color: #8aa; font-size: 12px; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 12px 10px 32px; }
+    .stats { gap: 8px; }
+    .stat { padding: 12px; }
+    .stat .num { font-size: 21px; }
+    .panel-head { padding: 4px 12px 0; }
+    .panel-body { padding: 12px; }
   }
-  @keyframes qs-spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 
 <body>
 <div id="app" v-cloak>
   <header class="topbar">
-    <button class="back" @click="goHome">‹</button>
-    <h1>置顶审核后台</h1>
-    <div class="logo">青售</div>
+    <button class="back" @click="goHome" title="返回前台">‹</button>
+    <div class="brand">青售</div>
+    <span class="admin-badge">管理后台</span>
+    <div class="top-right">
+      <span class="admin-name" v-if="me">{{ me.username }}</span>
+      <el-button size="small" round @click="logout">退出</el-button>
+    </div>
   </header>
 
   <div class="wrap">
-    <div class="summary">
-      <div>
-        <div class="sum-num">{{ applies.length }}</div>
-        <div class="sum-label">条待审核置顶申请</div>
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat warn">
+        <div class="num">{{ applies.length }}</div>
+        <div class="label">待审核置顶申请</div>
       </div>
-      <el-button class="refresh" size="small" round @click="load" :loading="loading">刷新</el-button>
-    </div>
-
-    <div v-if="loading" class="state-box">
-      <span class="dot-spinner"></span>加载中…
-    </div>
-
-    <div v-else-if="error" class="state-box">
-      <div class="emoji">😥</div>
-      <div class="state-title">加载失败</div>
-      <div class="state-desc">{{ error }}</div>
-      <el-button type="primary" round @click="load">重试</el-button>
-    </div>
-
-    <div v-else-if="applies.length === 0" class="state-box">
-      <div class="emoji">🎉</div>
-      <div class="state-title">暂无待审核申请</div>
-      <div class="state-desc">用户提交置顶申请后会出现在这里</div>
-    </div>
-
-    <div v-else class="apply-list">
-      <div class="apply" v-for="a in applies" :key="a.id">
-        <div class="apply-head">
-          <div class="apply-title">{{ a.itemTitle || ('商品 #' + a.itemId) }}</div>
-          <div class="apply-amount">¥{{ formatAmount(a.amount) }}</div>
-        </div>
-        <div class="apply-meta">
-          <span>⏱ 置顶 {{ a.days }} 天</span>
-          <span>👤 申请人 #{{ a.userId }}</span>
-          <span>🕒 {{ formatTime(a.createTime) }}</span>
-        </div>
-        <div class="apply-actions">
-          <el-button type="primary" round @click="approve(a)">确认收款并置顶</el-button>
-          <el-button round @click="reject(a)">拒绝</el-button>
-        </div>
+      <div class="stat">
+        <div class="num">{{ users.length }}</div>
+        <div class="label">用户总数</div>
+      </div>
+      <div class="stat danger">
+        <div class="num">{{ bannedCount }}</div>
+        <div class="label">已封禁用户</div>
       </div>
     </div>
 
-    <div class="note">
-      提示：点「确认收款并置顶」前请先核对微信 / 支付宝到账记录；拒绝时需填写原因，用户会在「我发布的」看到该原因。
+    <!-- 主面板 -->
+    <div class="panel">
+      <div class="panel-head">
+        <el-tabs v-model="tab">
+          <el-tab-pane label="置顶审核" name="topup"></el-tab-pane>
+          <el-tab-pane label="用户封禁" name="users"></el-tab-pane>
+        </el-tabs>
+        <span class="hint">仅管理员可见 · 所有操作均会立即生效</span>
+      </div>
+
+      <div class="panel-body">
+        <!-- 置顶审核 -->
+        <div v-show="tab === 'topup'">
+          <div class="toolbar">
+            <span class="title">待审核申请</span>
+            <span class="spacer"></span>
+            <el-button size="small" round :loading="loadingApplies" @click="loadApplies">刷新</el-button>
+          </div>
+
+          <el-table
+            :data="applies"
+            v-loading="loadingApplies"
+            element-loading-text="加载中…"
+            empty-text="暂无待审核申请"
+            style="width: 100%">
+            <el-table-column prop="itemTitle" label="商品名称" min-width="180" show-overflow-tooltip>
+              <template #default="{ row }">
+                <div>{{ row.itemTitle || ('商品 #' + row.itemId) }}</div>
+                <div class="muted">商品 ID：{{ row.itemId }}</div>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="申请人" min-width="150">
+              <template #default="{ row }">
+                <div>{{ row.userName || ('用户 #' + row.userId) }}</div>
+                <div class="muted">UID：{{ row.userId }}</div>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="天数" width="90" align="center">
+              <template #default="{ row }">
+                <el-tag type="info" effect="plain" round>{{ row.days }} 天</el-tag>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="金额" width="110" align="right">
+              <template #default="{ row }">
+                <span class="amount">¥{{ formatAmount(row.amount) }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="申请时间" width="170">
+              <template #default="{ row }">
+                <span class="muted">{{ formatTime(row.createTime) }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="操作" width="240" align="right" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" round @click="approve(row)">确认收款并置顶</el-button>
+                <el-button size="small" round @click="reject(row)">拒绝</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- 用户封禁 -->
+        <div v-show="tab === 'users'">
+          <div class="toolbar">
+            <span class="title">全部用户</span>
+            <span class="spacer"></span>
+            <el-button size="small" round :loading="loadingUsers" @click="loadUsers">刷新</el-button>
+          </div>
+
+          <el-table
+            :data="users"
+            v-loading="loadingUsers"
+            element-loading-text="加载中…"
+            empty-text="暂无用户"
+            style="width: 100%">
+            <el-table-column prop="id" label="ID" width="70" align="center"></el-table-column>
+
+            <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip></el-table-column>
+
+            <el-table-column prop="realName" label="真实姓名" min-width="100" show-overflow-tooltip></el-table-column>
+
+            <el-table-column prop="studentId" label="学号" min-width="110">
+              <template #default="{ row }">
+                <span class="muted">{{ row.studentId || '—' }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="角色" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.role === 2 ? 'warning' : 'info'" effect="light" round>
+                  {{ row.role === 2 ? '管理员' : '普通用户' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+
+            <el-table-column prop="creditScore" label="信用分" width="90" align="center"></el-table-column>
+
+            <el-table-column label="状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 1 ? 'danger' : 'success'" effect="light" round>
+                  {{ row.status === 1 ? '已封禁' : '正常' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="操作" width="130" align="right" fixed="right">
+              <template #default="{ row }">
+                <el-button
+                  v-if="row.status !== 1"
+                  type="danger"
+                  size="small"
+                  round
+                  :disabled="row.role === 2"
+                  @click="ban(row)">封禁</el-button>
+                <el-button
+                  v-else
+                  type="success"
+                  size="small"
+                  round
+                  @click="unban(row)">解封</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="muted" style="margin-top:10px">管理员账号不可封禁；封禁后该用户将无法登录和交易。</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -149,30 +267,25 @@
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.full.min.js"></script>
 <script>
-  const { createApp, ref, onMounted } = Vue;
+  const { createApp, ref, computed, onMounted } = Vue;
   const API_BASE = 'http://localhost:8080';
   const TOKEN_KEY = 'qingshou_token';
   const USER_KEY = 'qingshou_user';
 
-  // 未登录 / 非管理员直接回首页
   if (!localStorage.getItem(TOKEN_KEY)) {
     location.replace('login.html');
   }
 
   createApp({
     setup() {
+      const tab = ref('topup');
+      const me = ref(null);
       const applies = ref([]);
-      const loading = ref(false);
-      const error = ref('');
+      const users = ref([]);
+      const loadingApplies = ref(false);
+      const loadingUsers = ref(false);
 
-      const user = (() => {
-        try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch (e) { return null; }
-      })();
-
-      if (!user || user.role !== 2) {
-        ElementPlus.ElMessage.warning('需要管理员账号才能访问审核后台');
-        setTimeout(() => { location.replace('index.html'); }, 800);
-      }
+      const bannedCount = computed(() => users.value.filter(u => u.status === 1).length);
 
       function authHeaders() {
         return { Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '') };
@@ -182,45 +295,128 @@
         location.href = 'index.html';
       }
 
-      async function load() {
-        loading.value = true;
-        error.value = '';
+      function logout() {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        location.replace('login.html');
+      }
+
+      function handleAuth(res) {
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          location.replace('login.html');
+          return true;
+        }
+        if (res.status === 403) {
+          ElementPlus.ElMessage.error('需要管理员权限');
+          setTimeout(() => { location.replace('index.html'); }, 800);
+          return true;
+        }
+        return false;
+      }
+
+      async function loadMe() {
         try {
-          const res = await fetch(API_BASE + '/api/admin/topup/pending', { headers: authHeaders() });
-          if (res.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
-            location.replace('login.html');
-            return;
-          }
-          if (res.status === 403) {
-            throw new Error('需要管理员权限');
-          }
+          const res = await fetch(API_BASE + '/api/user/me', { headers: authHeaders() });
+          if (handleAuth(res)) return false;
           const json = await res.json().catch(() => ({}));
           if (!res.ok || json.code !== 200) {
-            throw new Error(json.message || ('HTTP ' + res.status));
+            throw new Error(json.message || '获取用户信息失败');
           }
-          applies.value = json.data || [];
+          me.value = json.data || {};
+          // 只有管理员（admin01）能进入后台
+          if (me.value.role !== 2) {
+            ElementPlus.ElMessage.warning('只有管理员 admin01 才能访问后台');
+            setTimeout(() => { location.replace('index.html'); }, 900);
+            return false;
+          }
+          return true;
         } catch (e) {
-          error.value = e.message || String(e);
-        } finally {
-          loading.value = false;
+          ElementPlus.ElMessage.error(e.message || '登录状态异常');
+          return false;
         }
       }
 
-      async function approve(a) {
+      async function loadApplies() {
+        loadingApplies.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/admin/topup/pending', { headers: authHeaders() });
+          if (handleAuth(res)) return;
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '加载失败');
+          }
+          applies.value = json.data || [];
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '加载待审核申请失败');
+        } finally {
+          loadingApplies.value = false;
+        }
+      }
+
+      async function loadUsers() {
+        loadingUsers.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/admin/users', { headers: authHeaders() });
+          if (handleAuth(res)) return;
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '加载失败');
+          }
+          users.value = json.data || [];
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '加载用户列表失败');
+        } finally {
+          loadingUsers.value = false;
+        }
+      }
+
+      function formatAmount(v) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n.toFixed(2) : v;
+      }
+
+      function formatTime(t) {
+        if (!t) return '—';
+        return String(t).replace('T', ' ').slice(0, 16);
+      }
+
+      async function post(url, body, successMsg) {
+        try {
+          const res = await fetch(API_BASE + url, {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify(body || {})
+          });
+          if (handleAuth(res)) return false;
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '操作失败');
+          }
+          ElementPlus.ElMessage.success(successMsg);
+          return true;
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '操作失败');
+          return false;
+        }
+      }
+
+      // ---- 置顶审核 ----
+      async function approve(row) {
         try {
           await ElementPlus.ElMessageBox.confirm(
-            `确认已收到 ¥${formatAmount(a.amount)}？通过后商品将置顶 ${a.days} 天。`,
+            `确认已收到 ¥${formatAmount(row.amount)}？通过后商品将置顶 ${row.days} 天。`,
             '确认收款并置顶',
             { confirmButtonText: '确认通过', cancelButtonText: '取消', type: 'warning' }
           );
         } catch (e) {
           return;
         }
-        await postAction(a.id, 'approve', {}, '审核通过，商品已置顶');
+        const ok = await post('/api/admin/topup/' + row.id + '/approve', {}, '审核通过，商品已置顶');
+        if (ok) await loadApplies();
       }
 
-      async function reject(a) {
+      async function reject(row) {
         let reason;
         try {
           const { value } = await ElementPlus.ElMessageBox.prompt(
@@ -235,47 +431,58 @@
           );
           reason = (value || '').trim();
         } catch (e) {
-          return; // 取消
+          return;
         }
-        await postAction(a.id, 'reject', { reason }, '已拒绝申请');
+        const ok = await post('/api/admin/topup/' + row.id + '/reject', { reason }, '已拒绝申请');
+        if (ok) await loadApplies();
       }
 
-      async function postAction(id, action, body, successMsg) {
+      // ---- 用户封禁 ----
+      async function ban(row) {
+        if (row.role === 2) {
+          ElementPlus.ElMessage.warning('管理员账号不可封禁');
+          return;
+        }
+        const name = row.realName || row.username;
         try {
-          const res = await fetch(API_BASE + '/api/admin/topup/' + id + '/' + action, {
-            method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
-            body: JSON.stringify(body || {})
-          });
-          if (res.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
-            location.replace('login.html');
-            return;
-          }
-          const json = await res.json().catch(() => ({}));
-          if (!res.ok || json.code !== 200) {
-            throw new Error(json.message || '操作失败');
-          }
-          ElementPlus.ElMessage.success(successMsg);
-          await load();
+          await ElementPlus.ElMessageBox.confirm(
+            `确认封禁用户「${name}（${row.username}）」？封禁后该用户无法登录和交易。`,
+            '封禁用户',
+            { confirmButtonText: '确认封禁', cancelButtonText: '取消', type: 'warning' }
+          );
         } catch (e) {
-          ElementPlus.ElMessage.error(e.message || '操作失败');
+          return;
         }
+        const ok = await post('/api/admin/users/' + row.id + '/ban', {}, '已封禁该用户');
+        if (ok) await loadUsers();
       }
 
-      function formatAmount(v) {
-        const n = Number(v);
-        return Number.isFinite(n) ? n.toFixed(2) : v;
+      async function unban(row) {
+        const name = row.realName || row.username;
+        try {
+          await ElementPlus.ElMessageBox.confirm(
+            `确认解封用户「${name}（${row.username}）」？`,
+            '解封用户',
+            { confirmButtonText: '确认解封', cancelButtonText: '取消', type: 'success' }
+          );
+        } catch (e) {
+          return;
+        }
+        const ok = await post('/api/admin/users/' + row.id + '/unban', {}, '已解除封禁');
+        if (ok) await loadUsers();
       }
 
-      function formatTime(t) {
-        if (!t) return '';
-        return String(t).replace('T', ' ').slice(0, 16);
-      }
+      onMounted(async () => {
+        const ok = await loadMe();
+        if (!ok) return;
+        await Promise.all([loadApplies(), loadUsers()]);
+      });
 
-      onMounted(load);
-
-      return { applies, loading, error, load, approve, reject, goHome, formatAmount, formatTime };
+      return {
+        tab, me, applies, users, loadingApplies, loadingUsers, bannedCount,
+        goHome, logout, loadApplies, loadUsers,
+        approve, reject, ban, unban, formatAmount, formatTime
+      };
     }
   }).use(ElementPlus).mount('#app');
 </script>

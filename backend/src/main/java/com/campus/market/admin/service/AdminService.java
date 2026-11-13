@@ -1,5 +1,6 @@
 package com.campus.market.admin.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.campus.market.admin.dto.AdminUserVO;
 import com.campus.market.common.BusinessException;
 import com.campus.market.item.dto.ItemListVO;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 管理员能力：置顶/取消置顶商品、封禁/解封用户。
@@ -51,6 +53,16 @@ public class AdminService {
         }
         itemMapper.updateTop(itemId, 0, null);
         return toItemVO(itemMapper.selectById(itemId));
+    }
+
+    /** 全部用户（管理后台用户封禁列表） */
+    public List<AdminUserVO> listUsers(Long adminId) {
+        requireAdmin(adminId);
+        return userMapper.selectList(new LambdaQueryWrapper<User>()
+                        .orderByAsc(User::getId))
+                .stream()
+                .map(this::toUserVO)
+                .toList();
     }
 
     /** 封禁用户 */
@@ -112,6 +124,8 @@ public class AdminService {
         vo.setId(user.getId());
         vo.setUsername(user.getUsername());
         vo.setRealName(user.getRealName());
+        vo.setStudentId(user.getStudentId());
+        vo.setSchoolEmail(user.getSchoolEmail());
         vo.setStatus(user.getStatus());
         vo.setRole(user.getRole());
         vo.setCreditScore(user.getCreditScore());
