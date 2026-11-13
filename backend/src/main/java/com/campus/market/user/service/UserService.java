@@ -14,7 +14,8 @@ import com.campus.market.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailCodeService emailCodeService;
 
     public RegisterResponse register(RegisterRequest request) {
         String username = request.getUsername().trim();
@@ -40,12 +42,15 @@ public class UserService {
             throw BusinessException.badRequest("该学号已被注册");
         }
 
+        // 学校邮箱验证码校验（匹配成功会立刻从 Redis 删除，防止重复使用）
+        emailCodeService.verifyAndConsume(request.getSchoolEmail(), request.getEmailCode());
+
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRealName(request.getRealName().trim());
         user.setStudentId(studentId);
-        user.setSchoolEmail(blankToNull(request.getSchoolEmail()));
+        user.setSchoolEmail(request.getSchoolEmail().trim().toLowerCase(Locale.ROOT));
         user.setStatus(0);
         user.setRole(1);
         user.setCreditScore(100);
@@ -89,12 +94,5 @@ public class UserService {
         profile.setCreditScore(user.getCreditScore());
         profile.setCreateTime(user.getCreateTime());
         return profile;
-    }
-
-    private String blankToNull(String value) {
-        if (!StringUtils.hasText(value)) {
-            return null;
-        }
-        return value.trim();
     }
 }

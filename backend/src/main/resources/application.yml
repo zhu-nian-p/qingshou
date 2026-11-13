@@ -26,11 +26,30 @@ spring:
       # 单张图片最大 5MB，单次请求最大 10MB
       max-file-size: 5MB
       max-request-size: 10MB
+  mail:
+    # QQ 邮箱 SMTP（465 + SSL）。账号和授权码从环境变量读取，见 .env.local
+    host: smtp.qq.com
+    port: 465
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_AUTH_CODE:}
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 # 图片上传目录。相对路径按「启动时的工作目录」解析，默认 backend/uploads
 # 通过 /uploads/** 静态映射对外访问
 app:
   upload-dir: uploads
+  mail:
+    # 邮件发件人显示名称
+    sender-name: 青售官方团队
+    # 验证码有效期（分钟）与同一邮箱发送间隔（秒），调整时同步改 EmailCodeService 的常量说明
+    code-expire-minutes: 5
+    send-interval-seconds: 60
 
 # 表名 order 是 MySQL 保留字。table-format / column-format 会给 MyBatis-Plus
 # 自动生成的表名、字段名加上反引号，后续订单模块不用再手写转义。

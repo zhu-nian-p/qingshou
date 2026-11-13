@@ -5,7 +5,9 @@ import com.campus.market.user.dto.LoginRequest;
 import com.campus.market.user.dto.LoginResponse;
 import com.campus.market.user.dto.RegisterRequest;
 import com.campus.market.user.dto.RegisterResponse;
+import com.campus.market.user.dto.SendCodeRequest;
 import com.campus.market.user.dto.UserProfileVO;
+import com.campus.market.user.service.EmailCodeService;
 import com.campus.market.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private final EmailCodeService emailCodeService;
+
+    /**
+     * 发送学校邮箱验证码（无需登录）。
+     * 同一邮箱 1 分钟内只能发送一次，验证码 5 分钟内有效。
+     */
+    @PostMapping("/send-code")
+    public Result<Void> sendCode(@Valid @RequestBody SendCodeRequest request) {
+        emailCodeService.sendCode(request.getEmail());
+        return Result.success("青售提示：验证码已发送，请查收学校邮箱（5 分钟内有效）");
+    }
 
     @PostMapping("/register")
     public Result<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {

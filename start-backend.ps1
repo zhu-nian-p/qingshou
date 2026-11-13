@@ -14,17 +14,26 @@ $env:JAVA_HOME = $javaHome
 $env:PATH = "$javaHome\bin;$env:PATH"
 $env:JAVA_TOOL_OPTIONS = '-Dfile.encoding=UTF-8'
 
-# 从项目根目录的 .env.local 读取敏感配置（该文件已加入 .gitignore，不会提交）
+# 从项目根目录的 .env.local 读取所有敏感配置（该文件已加入 .gitignore，不会提交）
+# 支持 KEY=VALUE 格式，忽略空行和 # 注释
 $envFile = Join-Path $root '.env.local'
 if (Test-Path $envFile) {
-    Get-Content $envFile | ForEach-Object {
-        if ($_ -match '^\s*DEEPSEEK_API_KEY\s*=\s*(.+)$') {
-            $env:DEEPSEEK_API_KEY = $matches[1].Trim().Trim('"').Trim("'")
+    Get-Content $envFile -Encoding UTF8 | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith('#')) {
+            if ($line -match '^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+                $name = $matches[1]
+                $value = $matches[2].Trim().Trim('"').Trim("'")
+                Set-Item -Path "Env:$name" -Value $value
+            }
         }
     }
 }
 if (-not $env:DEEPSEEK_API_KEY) {
     Write-Host "[提示] 未设置 DEEPSEEK_API_KEY，AI 接口将返回模拟文案" -ForegroundColor Yellow
+}
+if (-not $env:MAIL_USERNAME) {
+    Write-Host "[提示] 未设置 MAIL_USERNAME / MAIL_AUTH_CODE，验证码邮件将无法发送" -ForegroundColor Yellow
 }
 
 # 系统 %TEMP% 在本机对普通进程可能拒绝写入（Tomcat 建临时目录会失败），

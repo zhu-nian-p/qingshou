@@ -25,7 +25,14 @@ public class RegisterRequest {
     @Pattern(regexp = "^\\d{8,9}$", message = "学号必须是 8 到 9 位数字")
     private String studentId;
 
+    @NotBlank(message = "校园邮箱不能为空")
     @Email(message = "校园邮箱格式不正确")
+    @Pattern(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.edu\\.cn$",
+            message = "请使用 .edu.cn 结尾的学校邮箱")
     @Size(max = 100, message = "校园邮箱不能超过 100 个字符")
     private String schoolEmail;
+
+    @NotBlank(message = "邮箱验证码不能为空")
+    @Pattern(regexp = "^\\d{6}$", message = "邮箱验证码必须是 6 位数字")
+    private String emailCode;
 }

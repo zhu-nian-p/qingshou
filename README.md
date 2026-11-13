@@ -8,6 +8,7 @@
 |---|---|
 | 后端 | Spring Boot 3.5.16、MyBatis-Plus 3.5.18、JWT（jjwt 0.12）、BCrypt |
 | 数据库 | MySQL 8.0（Docker）、Redis 7（Docker） |
+| 邮件 | QQ 邮箱 SMTP（smtp.qq.com:465 + SSL），用于学校邮箱验证码注册 |
 | 前端 | Vue 3 + Element Plus（CDN 引入，单文件 `frontend/index.html`） |
 | AI | DeepSeek Chat Completions（可选，未配置 Key 时返回模拟文案） |
 
@@ -72,6 +73,13 @@ campus-market/
 `backend/src/main/resources/application.yml`：
 
 ```yaml
+spring:
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: ${MAIL_USERNAME:}      # 发件邮箱
+    password: ${MAIL_AUTH_CODE:}     # QQ 邮箱 SMTP 授权码（不是登录密码）
+
 deepseek:
   api-key: ${DEEPSEEK_API_KEY:}   # 从环境变量读取，启动脚本会加载 .env.local
 topup:
@@ -81,16 +89,18 @@ order:
   timeout-cron: "0 */10 * * * *"  # 每 10 分钟扫描一次
 ```
 
-`.env.local`（项目根目录，本机私有）：
+`.env.local`（项目根目录，本机私有，已在 .gitignore）：
 ```
 DEEPSEEK_API_KEY=sk-xxxx
+MAIL_USERNAME=你的QQ邮箱@qq.com
+MAIL_AUTH_CODE=你的SMTP授权码
 ```
 
 ## 接口速查
 
 | 模块 | 接口 |
 |---|---|
-| 用户 | `POST /api/user/register`、`POST /api/user/login`、`GET /api/user/me` |
+| 用户 | `POST /api/user/send-code`（学校邮箱验证码）、`POST /api/user/register`（需 `emailCode`）、`POST /api/user/login`、`GET /api/user/me` |
 | 个人中心 | `GET /api/user/me/items`、`GET /api/user/me/trades` |
 | 商品 | `POST /api/item`、`GET /api/item/list`、`GET /api/item/{id}` |
 | 订单 | `POST /api/order`、`POST /api/order/{id}/seller-confirm`、`POST /api/order/{id}/complete`、`POST /api/order/{id}/seller-reject`、`GET /api/order/buyer`、`GET /api/order/seller` |
@@ -101,3 +111,14 @@ DEEPSEEK_API_KEY=sk-xxxx
 | 管理 | `POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject` |
 
 所有接口统一返回 `{ "code": 200, "message": "...", "data": ... }`。
+
+## 学校邮箱验证码注册
+
+1. `POST /api/user/send-code`，body `{"email":"学号@xxx.edu.cn"}`：
+   - 仅接受 `.edu.cn` 结尾邮箱
+   - 同一邮箱 1 分钟内只能发一次（Redis 限流，超限 429）
+   - 6 位随机验证码，Redis 存 5 分钟
+   - 由 QQ SMTP 发送，标题「【青售】您的注册验证码」，发件人「青售官方团队」
+2. `POST /api/user/register` 时带上 `schoolEmail` 和 `emailCode`：
+   - 校验通过后立即删除 Redis 中的验证码（一次性使用）
+   - 错误或过期返回 400「验证码错误或已过期」
