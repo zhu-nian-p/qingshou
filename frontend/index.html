@@ -616,11 +616,35 @@
           ]);
           profile.value = me || {};
           myItems.value = mine || [];
-          bought.value = (trades && trades.bought) || [];
-          sold.value = (trades && trades.sold) || [];
+          // 订单先排序再渲染：未完成在前、已完成在后，组内按时间从新到旧
+          bought.value = sortOrders((trades && trades.bought) || []);
+          sold.value = sortOrders((trades && trades.sold) || []);
         } catch (e) {
           ElementPlus.ElMessage.error(e.message);
         }
+      }
+
+      /**
+       * 订单分组：3=待卖家确认、0=待面交 属于「未完成」；1=已完成、2=已取消 属于「已完成」
+       * 未完成组排前面，组内按 createTime 从新到旧。
+       */
+      function orderGroup(status) {
+        return (status === 3 || status === 0) ? 0 : 1;
+      }
+
+      function orderTime(order) {
+        const t = order && order.createTime ? String(order.createTime) : '';
+        // createTime 形如 2026-11-13T12:53:00，转成时间戳；异常值当作 0
+        const ts = new Date(t.replace('T', ' ')).getTime();
+        return Number.isFinite(ts) ? ts : 0;
+      }
+
+      function sortOrders(list) {
+        return [...list].sort((a, b) => {
+          const groupDiff = orderGroup(a.status) - orderGroup(b.status);
+          if (groupDiff !== 0) return groupDiff;
+          return orderTime(b) - orderTime(a);
+        });
       }
 
       function switchTab(t) {
