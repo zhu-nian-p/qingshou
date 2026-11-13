@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>发布闲置 · 青售</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.css">
+<style>
+  :root {
+    --teal: #14b8a6; --teal-dark: #0f766e; --mint: #f0fdfa; --ink: #0f2e2a; --gray: #6b7f7c;
+    --line: #e3f6f1;
+    --el-color-primary: #14b8a6;
+    --el-color-primary-light-3: #4dd4c4;
+    --el-color-primary-light-5: #7fe3d7;
+    --el-color-primary-light-7: #b3f0e9;
+    --el-color-primary-light-9: #e6fffa;
+    --el-color-primary-dark-2: #0f9b8d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(900px 420px at 8% -10%, #ccfbf1 0%, rgba(204,251,241,0) 60%),
+      #f7fffd;
+    padding-bottom: 90px;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; background: rgba(255,255,255,.92);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .topbar .back {
+    border: none; background: #e6fffa; color: var(--teal-dark);
+    width: 34px; height: 34px; border-radius: 10px; font-size: 16px; cursor: pointer;
+  }
+  .topbar h1 { font-size: 17px; margin: 0; letter-spacing: 1px; }
+  .topbar .logo {
+    margin-left: auto; font-weight: 800; font-size: 20px; letter-spacing: 2px;
+    background: linear-gradient(135deg, #0d9488, #2dd4bf 60%, #67e8f9);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px 14px; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 18px;
+    padding: 18px 16px; box-shadow: 0 10px 26px rgba(13,148,136,.06);
+  }
+  .field { margin-bottom: 18px; }
+  .field > label {
+    display: block; font-size: 13px; font-weight: 700; color: #36635c; margin-bottom: 8px;
+  }
+  .field > label .req { color: #ef4444; margin-left: 2px; }
+  .field .el-input__wrapper, .field .el-textarea__inner { border-radius: 12px; }
+  .tip { font-size: 11px; color: #9bb5b0; margin-top: 6px; }
+
+  .uploader :deep(.el-upload) { width: 100%; }
+  .upload-box {
+    width: 100%; aspect-ratio: 16 / 9; max-height: 260px;
+    border: 2px dashed #c8eee7; border-radius: 14px; background: #f4fffd;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; color: #7fb3ab; cursor: pointer; overflow: hidden; position: relative;
+    transition: border-color .15s ease;
+  }
+  .upload-box:hover { border-color: var(--teal); }
+  .upload-box .plus { font-size: 30px; line-height: 1; color: var(--teal); }
+  .upload-box .u-tip { font-size: 12px; }
+  .upload-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .upload-mask {
+    position: absolute; inset: 0; background: rgba(15,46,42,.36); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    opacity: 0; transition: opacity .15s ease;
+  }
+  .upload-box:hover .upload-mask { opacity: 1; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .submit-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.96); border-top: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+  }
+  .submit-btn {
+    display: block; width: 100%; max-width: 720px; margin: 0 auto;
+    height: 50px; border: none; border-radius: 16px; cursor: pointer;
+    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff;
+    font-size: 16px; font-weight: 700; letter-spacing: 2px;
+    box-shadow: 0 10px 24px rgba(13,148,136,.28);
+  }
+  .submit-btn[disabled] { opacity: .65; cursor: not-allowed; }
+</style>
+</head>
+
+<body>
+<div id="app" v-cloak>
+  <header class="topbar">
+    <button class="back" @click="goBack">‹</button>
+    <h1>发布闲置</h1>
+    <div class="logo">青售</div>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <!-- 图片上传 -->
+      <div class="field">
+        <label>商品图片</label>
+        <el-upload
+          :action="uploadUrl"
+          :headers="uploadHeaders"
+          name="file"
+          accept="image/*"
+          :show-file-list="false"
+          :before-upload="beforeUpload"
+          :on-success="onUploadSuccess"
+          :on-error="onUploadError">
+          <div class="upload-box">
+            <template v-if="form.imageUrl">
+              <img :src="imgSrc(form.imageUrl)" alt="商品图">
+              <div class="upload-mask">点击更换图片</div>
+            </template>
+            <template v-else>
+              <div class="plus">＋</div>
+              <div class="u-tip">点击上传商品图片</div>
+            </template>
+          </div>
+        </el-upload>
+        <div class="tip">支持 jpg / png / webp，单张不超过 5MB</div>
+        <el-button v-if="form.imageUrl" link type="danger" size="small" style="margin-top:4px" @click="removeImage">移除图片</el-button>
+      </div>
+
+      <!-- 标题 -->
+      <div class="field">
+        <label>商品标题<span class="req">*</span></label>
+        <el-input v-model="form.title" size="large" maxlength="100" show-word-limit
+                  placeholder="例如：九成新自行车，毕业急出"></el-input>
+      </div>
+
+      <!-- 描述 -->
+      <div class="field">
+        <label>商品描述</label>
+        <el-input v-model="form.description" type="textarea" :rows="4" maxlength="2000" show-word-limit
+                  placeholder="成色、入手时间、使用情况、瑕疵等，写清楚更好卖～"></el-input>
+      </div>
+
+      <!-- 价格 / 分类 / 校区 -->
+      <div class="grid-2">
+        <div class="field">
+          <label>价格（元）<span class="req">*</span></label>
+          <el-input-number v-model="form.price" :min="0.01" :max="99999999" :precision="2"
+                           :step="1" controls-position="right" style="width:100%"></el-input-number>
+        </div>
+        <div class="field">
+          <label>分类<span class="req">*</span></label>
+          <el-select v-model="form.category" placeholder="请选择分类" size="large" style="width:100%">
+            <el-option v-for="c in categories" :key="c" :label="c" :value="c"></el-option>
+          </el-select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label>校区<span class="req">*</span></label>
+          <el-select v-model="form.campus" placeholder="请选择校区" size="large" style="width:100%">
+            <el-option v-for="c in campuses" :key="c" :label="c" :value="c"></el-option>
+          </el-select>
+        </div>
+        <div class="field">
+          <label>联系方式（微信 / QQ）<span class="req">*</span></label>
+          <el-input v-model="form.contactInfo" size="large" maxlength="100"
+                    placeholder="例如：wx: xiaoming01"></el-input>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="submit-bar">
+    <button class="submit-btn" :disabled="submitting" @click="submit">
+      {{ submitting ? '发布中…' : '发 布 闲 置' }}
+    </button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.full.min.js"></script>
+<script>
+  const { createApp, ref, reactive, computed, onMounted } = Vue;
+  const API_BASE = 'http://localhost:8080';
+  const TOKEN_KEY = 'qingshou_token';
+
+  createApp({
+    setup() {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) {
+        location.replace('login.html');
+      }
+
+      const uploadUrl = API_BASE + '/api/upload';
+      const uploadHeaders = computed(() => ({
+        Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '')
+      }));
+
+      const categories = ['数码', '书籍', '生活用品', '运动户外', '其他'];
+      const campuses = ['上海路', '前湖'];
+      const form = reactive({
+        title: '', description: '', price: null,
+        category: '', campus: '前湖', contactInfo: '', imageUrl: ''
+      });
+      const submitting = ref(false);
+
+      function goBack() {
+        if (history.length > 1) history.back();
+        else location.href = 'index.html';
+      }
+
+      function beforeUpload(file) {
+        if (!/^image\//.test(file.type)) {
+          ElementPlus.ElMessage.error('只能上传图片文件');
+          return false;
+        }
+        if (file.size / 1024 / 1024 > 5) {
+          ElementPlus.ElMessage.error('图片不能超过 5MB');
+          return false;
+        }
+        return true;
+      }
+
+      function onUploadSuccess(res) {
+        if (res && res.code === 200 && res.data && res.data.url) {
+          form.imageUrl = res.data.url;
+          ElementPlus.ElMessage.success('图片上传成功');
+        } else {
+          ElementPlus.ElMessage.error((res && res.message) || '图片上传失败');
+        }
+      }
+
+      function onUploadError() {
+        ElementPlus.ElMessage.error('图片上传失败，请检查登录状态或网络');
+      }
+
+      function removeImage() {
+        form.imageUrl = '';
+      }
+
+      function imgSrc(url) {
+        if (!url) return '';
+        return /^https?:/i.test(url) ? url : API_BASE + url;
+      }
+
+      async function submit() {
+        if (!form.title.trim()) return ElementPlus.ElMessage.warning('请填写商品标题');
+        if (form.price === null || form.price === undefined || Number(form.price) <= 0) {
+          return ElementPlus.ElMessage.warning('价格必须大于 0');
+        }
+        if (!form.category) return ElementPlus.ElMessage.warning('请选择分类');
+        if (!form.campus) return ElementPlus.ElMessage.warning('请选择校区');
+        if (!form.contactInfo.trim()) return ElementPlus.ElMessage.warning('请填写联系方式');
+
+        submitting.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/item', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '')
+            },
+            body: JSON.stringify({
+              title: form.title.trim(),
+              description: form.description.trim(),
+              price: Number(form.price),
+              category: form.category,
+              campus: form.campus,
+              contactInfo: form.contactInfo.trim(),
+              imageUrl: form.imageUrl || null
+            })
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '发布失败');
+          }
+          await ElementPlus.ElMessageBox.alert('发布成功', '青售提示', {
+            confirmButtonText: '返回首页',
+            type: 'success'
+          });
+          location.href = 'index.html';
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '发布失败，请稍后重试');
+        } finally {
+          submitting.value = false;
+        }
+      }
+
+      onMounted(() => {
+        // 预填上次选择的校区，体验更顺
+        const lastCampus = localStorage.getItem('qingshou_last_campus');
+        if (lastCampus) form.campus = lastCampus;
+      });
+
+      return {
+        form, categories, campuses, submitting,
+        uploadUrl, uploadHeaders, beforeUpload, onUploadSuccess, onUploadError,
+        removeImage, imgSrc, submit, goBack
+      };
+    }
+  }).use(ElementPlus).mount('#app');
+</script>
+</body>
+</html>

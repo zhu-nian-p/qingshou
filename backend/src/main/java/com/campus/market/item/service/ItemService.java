@@ -127,6 +127,13 @@ public class ItemService {
         ItemDetailVO vo = new ItemDetailVO();
         vo.setId(item.getId());
         vo.setSellerId(item.getSellerId());
+
+        User seller = userMapper.selectById(item.getSellerId());
+        if (seller != null) {
+            vo.setSellerName(seller.getUsername());
+            vo.setSellerCredit(seller.getCreditScore());
+        }
+
         vo.setTitle(item.getTitle());
         vo.setDescription(item.getDescription());
         vo.setPrice(item.getPrice());

@@ -138,6 +138,7 @@
     background: #fff; border: 1px solid var(--line); border-radius: 14px;
     overflow: hidden; box-shadow: 0 6px 16px rgba(13,148,136,.05);
     transition: transform .18s ease, box-shadow .18s ease;
+    cursor: pointer;
   }
   @media (min-width: 768px) {
     .card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(13,148,136,.13); }
@@ -366,7 +367,7 @@
 
         <!-- 商品网格 -->
         <div v-else class="grid">
-          <article class="card" v-for="item in items" :key="item.id">
+          <article class="card" v-for="item in items" :key="item.id" @click="goDetail(item)">
             <div class="thumb">
               <img :src="imgSrc(item.imageUrl)" :alt="item.title" @error="onImgError" loading="lazy">
               <div class="badges">
@@ -634,7 +635,11 @@
       }
 
       function goPublish() {
-        ElementPlus.ElMessage.info('发布页面正在开发中，敬请期待～');
+        location.href = 'publish.html';
+      }
+
+      function goDetail(item) {
+        location.href = 'detail.html?id=' + item.id;
       }
 
       function logout() {
@@ -686,7 +691,7 @@
         campuses, campus, keyword, items, loading, error,
         profile, myItems, bought, sold, segments, segment, currentOrders,
         avatarText, switchTab, pickCampus, loadItems, loadProfile,
-        switchSegment, segmentCount, goPublish, logout,
+        switchSegment, segmentCount, goPublish, goDetail, logout,
         formatPrice, formatTime, itemStatusText, imgSrc, onImgError
       };
     }

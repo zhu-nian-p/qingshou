@@ -18,6 +18,12 @@ public class ItemDetailVO {
 
     private Long sellerId;
 
+    /** 卖家用户名（展示用） */
+    private String sellerName;
+
+    /** 卖家信用分，前端据此显示「🏅 高信誉」 */
+    private Integer sellerCredit;
+
     private String title;
 
     private String description;
