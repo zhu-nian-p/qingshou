@@ -239,6 +239,7 @@
   .mini-body { min-width: 0; flex: 1; }
   .mini-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mini-sub { font-size: 12px; color: #8aa; margin-top: 3px; }
+  .mini-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
   .mini-flag {
     font-size: 11px; padding: 3px 9px; border-radius: 999px;
     background: #e6fffa; color: var(--teal-dark); flex: 0 0 auto;
@@ -246,6 +247,42 @@
   .mini-flag.s1 { background: #fff7ed; color: #c2410c; }
   .mini-flag.s2 { background: #f1f5f9; color: #64748b; }
   .mini-flag.s3 { background: #fef2f2; color: #b91c1c; }
+  .top-chip {
+    font-size: 10px; padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+    background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;
+  }
+
+  /* 申请置顶弹窗 */
+  .topup-item-name {
+    font-size: 13px; color: #6b7f7c; margin-bottom: 12px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .plan-list { display: flex; gap: 10px; }
+  .plan {
+    flex: 1; border: 2px solid #e3f6f1; border-radius: 14px; padding: 12px 8px;
+    text-align: center; cursor: pointer; position: relative; transition: all .15s ease;
+  }
+  .plan.active {
+    border-color: var(--teal); background: #f0fdfa;
+    box-shadow: 0 6px 16px rgba(13,148,136,.12);
+  }
+  .plan-days { font-size: 15px; font-weight: 700; color: #164e45; }
+  .plan-price { font-size: 18px; font-weight: 800; color: var(--teal-dark); margin-top: 4px; }
+  .plan-sub { font-size: 10px; color: #f59e0b; margin-top: 4px; }
+  .topup-total { text-align: right; margin: 12px 2px 6px; font-size: 13px; color: #6b7f7c; }
+  .topup-total b { font-size: 20px; color: var(--teal-dark); }
+  .qr-wrap { text-align: center; margin: 8px 0; }
+  .qr-wrap img {
+    width: 180px; height: 180px; object-fit: contain; padding: 6px;
+    background: #fff; border: 1px solid #e3f6f1; border-radius: 12px;
+  }
+  .qr-tip { font-size: 11px; color: #9bb5b0; margin-top: 6px; }
+  .topup-note {
+    font-size: 12px; line-height: 1.7; color: #6b7f7c;
+    background: #f4fffd; border: 1px dashed #b8f0e6;
+    border-radius: 12px; padding: 10px 12px;
+  }
+  .topup-note b { color: var(--teal-dark); }
 
   .order { display: block; }
   .order-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -464,7 +501,13 @@
               <div class="mini-title">{{ it.title }}</div>
               <div class="mini-sub">¥{{ formatPrice(it.price) }} · {{ it.campus || '前湖' }}校区</div>
             </div>
-            <span class="mini-flag" :class="'s' + it.status">{{ itemStatusText(it.status) }}</span>
+            <div class="mini-actions">
+              <span class="top-chip" v-if="it.isTop === 1">🔥 置顶中</span>
+              <span class="mini-flag" :class="'s' + it.status">{{ itemStatusText(it.status) }}</span>
+              <el-button v-if="it.status === 0" class="topup-btn" size="small" round @click="openTopup(it)">
+                申请置顶
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -513,6 +556,36 @@
 
   <!-- 移动端悬浮发布按钮 -->
   <button class="fab" v-if="isMobile && tab === 'home'" @click="goPublish">＋</button>
+
+  <!-- 申请置顶弹窗 -->
+  <el-dialog v-model="topupDialogVisible" title="申请置顶" width="420px" align-center>
+    <div class="topup-item-name" v-if="topupItem">商品：{{ topupItem.title }}</div>
+
+    <div class="plan-list">
+      <div class="plan" v-for="p in plans" :key="p.days"
+           :class="{ active: selectedDays === p.days }" @click="selectedDays = p.days">
+        <div class="plan-days">{{ p.days }} 天</div>
+        <div class="plan-price">¥{{ p.price }}</div>
+        <div class="plan-sub" v-if="p.days === 7">最受欢迎</div>
+      </div>
+    </div>
+
+    <div class="topup-total">合计：<b>¥{{ planPrice }}</b></div>
+
+    <div class="qr-wrap">
+      <img :src="qrSrc" alt="收款码" @error="onQrError">
+      <div class="qr-tip">扫码支付 {{ planPrice }} 元</div>
+    </div>
+
+    <div class="topup-note">
+      扫码支付后点击下方按钮提交。由于是人工审核，请添加管理员微信：<b>qingshou-admin</b> 发送截图，通常在 1 小时内为您置顶。
+    </div>
+
+    <template #footer>
+      <el-button round @click="topupDialogVisible = false">取消</el-button>
+      <el-button type="primary" round :loading="topupSubmitting" @click="submitTopup">我已支付，提交申请</el-button>
+    </template>
+  </el-dialog>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
@@ -559,6 +632,48 @@
       const bought = ref([]);
       const sold = ref([]);
       const segment = ref('items');
+
+      // ---- 申请置顶弹窗 ----
+      const topupDialogVisible = ref(false);
+      const topupItem = ref(null);
+      const selectedDays = ref(1);
+      const topupSubmitting = ref(false);
+      const qrFailed = ref(false);
+      const plans = [
+        { days: 1, price: '1.00' },
+        { days: 7, price: '5.00' },
+        { days: 30, price: '12.00' }
+      ];
+      const QR_URL = 'https://img.example.com/qr.png';
+      const QR_PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">' +
+        '<rect width="240" height="240" fill="#ffffff"/>' +
+        '<rect x="18" y="18" width="60" height="60" fill="#0f2e2a"/>' +
+        '<rect x="30" y="30" width="36" height="36" fill="#ffffff"/>' +
+        '<rect x="40" y="40" width="16" height="16" fill="#0f2e2a"/>' +
+        '<rect x="162" y="18" width="60" height="60" fill="#0f2e2a"/>' +
+        '<rect x="174" y="30" width="36" height="36" fill="#ffffff"/>' +
+        '<rect x="184" y="40" width="16" height="16" fill="#0f2e2a"/>' +
+        '<rect x="18" y="162" width="60" height="60" fill="#0f2e2a"/>' +
+        '<rect x="30" y="174" width="36" height="36" fill="#ffffff"/>' +
+        '<rect x="40" y="184" width="16" height="16" fill="#0f2e2a"/>' +
+        '<rect x="96" y="24" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="120" y="48" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="96" y="72" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="132" y="96" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="168" y="120" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="96" y="168" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="120" y="192" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="150" y="168" width="14" height="14" fill="#0f2e2a"/>' +
+        '<rect x="180" y="192" width="14" height="14" fill="#0f2e2a"/>' +
+        '<text x="120" y="225" font-size="12" fill="#14b8a6" text-anchor="middle" font-family="sans-serif">示例收款码</text>' +
+        '</svg>'
+      );
+      const qrSrc = computed(() => (qrFailed.value ? QR_PLACEHOLDER : QR_URL));
+      const planPrice = computed(() => {
+        const plan = plans.find(p => p.days === selectedDays.value) || plans[0];
+        return plan.price;
+      });
       const segments = [
         { key: 'items', label: '我发布的' },
         { key: 'bought', label: '我买到的' },
@@ -825,6 +940,57 @@
         }).then(() => postOrderAction(o.id, 'complete', '交易完成，双方信用分 +1')).catch(() => {});
       }
 
+      // ---- 申请置顶 ----
+
+      function openTopup(item) {
+        topupItem.value = item;
+        selectedDays.value = 1;
+        qrFailed.value = false;
+        topupSubmitting.value = false;
+        topupDialogVisible.value = true;
+      }
+
+      function onQrError(e) {
+        qrFailed.value = true;
+        e.target.src = QR_PLACEHOLDER;
+        e.target.onerror = null;
+      }
+
+      async function submitTopup() {
+        if (!topupItem.value) return;
+        topupSubmitting.value = true;
+        try {
+          // 只传 itemId 和 days，金额由后端计算
+          const res = await fetch(API_BASE + '/api/topup/apply', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '')
+            },
+            body: JSON.stringify({
+              itemId: topupItem.value.id,
+              days: selectedDays.value
+            })
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '提交失败');
+          }
+          topupDialogVisible.value = false;
+          ElementPlus.ElMessage.success('申请已提交，管理员审核通过后会为你置顶');
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '提交失败，请稍后重试');
+        } finally {
+          topupSubmitting.value = false;
+        }
+      }
+
       function formatPrice(price) {
         const n = Number(price);
         return Number.isFinite(n) ? n.toFixed(2) : price;
@@ -869,6 +1035,8 @@
         user, tab, isMobile, navs, messages,
         campuses, campus, keyword, items, total, page, loading, loadingMore, noMore, error,
         profile, myItems, bought, sold, segments, segment, currentOrders,
+        topupDialogVisible, topupItem, selectedDays, topupSubmitting, plans, qrSrc, planPrice,
+        openTopup, submitTopup, onQrError,
         avatarText, switchTab, pickCampus, loadItems, reload, loadProfile,
         switchSegment, segmentCount, goPublish, goDetail, logout,
         orderStatusText, canAct, confirmTrade, rejectTrade, completeTrade,
