@@ -236,15 +236,30 @@
     <div class="contact-label">卖家联系方式</div>
     <div class="contact-box">
       <div class="contact-value">{{ contactInfo }}</div>
-      <el-button type="primary" round @click="copyContact">复制微信号</el-button>
+      <el-button type="primary" round @click="copyContact">{{ copyLabel }}</el-button>
     </div>
     <div class="contact-tip">
-      复制后打开微信，粘贴到搜索框添加好友。<br>
+      复制后打开微信 / QQ，粘贴到搜索框添加好友。<br>
       交易请选择校内公共场所面交，注意安全。
     </div>
 
     <template #footer>
       <el-button round @click="dialogVisible = false">关闭</el-button>
+      <el-button type="primary" round @click="openOrderDialog">直接下单</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- 下单弹窗 -->
+  <el-dialog v-model="orderDialogVisible" title="确认下单" width="400px" align-center>
+    <div class="contact-label">期望交易地点</div>
+    <el-input v-model="tradeLocation" size="large" maxlength="200"
+              placeholder="如：一食堂门口 / 图书馆一楼"></el-input>
+    <div class="contact-tip" style="margin-top:10px">
+      提交后商品会被锁定为「已预订」，等待卖家确认面交。
+    </div>
+    <template #footer>
+      <el-button round @click="orderDialogVisible = false">取消</el-button>
+      <el-button type="primary" round :loading="submitting" @click="submitOrder">提交订单</el-button>
     </template>
   </el-dialog>
 </div>
@@ -276,9 +291,21 @@
       const dialogVisible = ref(false);
       const contactInfo = ref('');
 
+      const orderDialogVisible = ref(false);
+      const tradeLocation = ref('一食堂门口');
+      const submitting = ref(false);
+
       const sellerAvatar = computed(() => {
         const name = item.value.sellerName || '青';
         return String(name).slice(0, 1).toUpperCase();
+      });
+
+      // 根据联系方式内容动态显示复制按钮文案
+      const copyLabel = computed(() => {
+        const c = contactInfo.value || '';
+        if (/qq/i.test(c)) return '复制QQ号';
+        if (/微信|wx/i.test(c)) return '复制微信号';
+        return '一键复制';
       });
 
       const statusText = computed(() => {
@@ -368,6 +395,53 @@
         }
       }
 
+      function openOrderDialog() {
+        dialogVisible.value = false;
+        orderDialogVisible.value = true;
+      }
+
+      async function submitOrder() {
+        if (!tradeLocation.value.trim()) {
+          ElementPlus.ElMessage.warning('请填写期望交易地点');
+          return;
+        }
+        if (!localStorage.getItem(TOKEN_KEY)) {
+          promptLogin();
+          return;
+        }
+        submitting.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/order', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY)
+            },
+            body: JSON.stringify({
+              itemId: Number(itemId),
+              tradeLocation: tradeLocation.value.trim()
+            })
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            promptLogin();
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '下单失败');
+          }
+          orderDialogVisible.value = false;
+          ElementPlus.ElMessage.success('下单成功，等待卖家确认');
+          // 刷新详情：商品状态会变成「已被预订」
+          item.value = await fetchDetail();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '下单失败，请稍后重试');
+        } finally {
+          submitting.value = false;
+        }
+      }
+
       async function copyContact() {
         const text = contactInfo.value || '';
         const done = () => ElementPlus.ElMessage.success('复制成功，快去微信添加好友吧！');
@@ -421,8 +495,9 @@
 
       return {
         item, loading, error, dialogVisible, contactInfo,
-        sellerAvatar, statusText, wantText,
-        goBack, wantIt, copyContact,
+        sellerAvatar, statusText, wantText, copyLabel,
+        orderDialogVisible, tradeLocation, submitting,
+        goBack, wantIt, copyContact, openOrderDialog, submitOrder,
         formatPrice, formatTime, imgSrc, onImgError
       };
     }

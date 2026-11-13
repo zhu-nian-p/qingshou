@@ -246,6 +246,7 @@
   .order-status.os2 { background: #fef2f2; color: #b91c1c; }
   .order-status.os3 { background: #fff7ed; color: #c2410c; }
   .order-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #8aa; margin-top: 8px; }
+  .order-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 
   .logout-btn {
     width: 100%; margin-top: 26px; padding: 13px; border-radius: 14px;
@@ -462,12 +463,21 @@
           <div class="order" v-for="o in currentOrders" :key="o.id">
             <div class="order-head">
               <span class="order-title">{{ o.itemTitle }}</span>
-              <span class="order-status" :class="'os' + o.status">{{ o.statusText }}</span>
+              <span class="order-status" :class="'os' + o.status">{{ orderStatusText(o) }}</span>
             </div>
             <div class="order-meta">
               <span>¥{{ formatPrice(o.itemPrice) }}</span>
               <span>📍 {{ o.tradeLocation }}</span>
               <span>{{ formatTime(o.createTime) }}</span>
+            </div>
+            <div class="order-actions" v-if="canAct(o)">
+              <template v-if="segment === 'bought'">
+                <el-button size="small" type="primary" round @click="completeTrade(o)">确认完成交易</el-button>
+              </template>
+              <template v-else>
+                <el-button size="small" type="primary" round @click="confirmTrade(o)">同意面交</el-button>
+                <el-button size="small" round @click="rejectTrade(o)">拒绝接单</el-button>
+              </template>
             </div>
           </div>
         </div>
@@ -648,6 +658,61 @@
         location.replace('login.html');
       }
 
+      function orderStatusText(o) {
+        if (segment.value === 'sold' && o.status === 3) return '待确认';
+        return o.statusText || '';
+      }
+
+      // 买家：待面交(0) 可确认完成；卖家：待确认(3) 可同意/拒绝
+      function canAct(o) {
+        if (segment.value === 'bought') return o.status === 0;
+        if (segment.value === 'sold') return o.status === 3;
+        return false;
+      }
+
+      async function postOrderAction(orderId, action, successMsg) {
+        try {
+          const res = await fetch(API_BASE + '/api/order/' + orderId + '/' + action, {
+            method: 'POST',
+            headers: authHeaders()
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '操作失败');
+          }
+          ElementPlus.ElMessage.success(successMsg);
+          await loadProfile();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '操作失败');
+        }
+      }
+
+      function confirmTrade(o) {
+        postOrderAction(o.id, 'seller-confirm', '已同意面交，等待买家确认');
+      }
+
+      function rejectTrade(o) {
+        ElementPlus.ElMessageBox.confirm('拒绝后商品会恢复在售，确定拒绝这笔订单吗？', '拒绝接单', {
+          confirmButtonText: '确定拒绝',
+          cancelButtonText: '再想想',
+          type: 'warning'
+        }).then(() => postOrderAction(o.id, 'seller-reject', '已拒绝接单，商品已恢复在售')).catch(() => {});
+      }
+
+      function completeTrade(o) {
+        ElementPlus.ElMessageBox.confirm('确认已经完成面交？确认后你与卖家信用分各 +1。', '确认完成交易', {
+          confirmButtonText: '确认完成',
+          cancelButtonText: '取消',
+          type: 'success'
+        }).then(() => postOrderAction(o.id, 'complete', '交易完成，双方信用分 +1')).catch(() => {});
+      }
+
       function formatPrice(price) {
         const n = Number(price);
         return Number.isFinite(n) ? n.toFixed(2) : price;
@@ -692,6 +757,7 @@
         profile, myItems, bought, sold, segments, segment, currentOrders,
         avatarText, switchTab, pickCampus, loadItems, loadProfile,
         switchSegment, segmentCount, goPublish, goDetail, logout,
+        orderStatusText, canAct, confirmTrade, rejectTrade, completeTrade,
         formatPrice, formatTime, itemStatusText, imgSrc, onImgError
       };
     }
