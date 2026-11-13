@@ -306,6 +306,15 @@
     border: 1px solid #fecaca; background: #fff5f5; color: #dc2626;
     font-size: 14px; font-weight: 600; cursor: pointer;
   }
+  .admin-entry {
+    width: 100%; margin-top: 12px; height: 44px; border-radius: 14px;
+    border: 1px solid #b8f0e6; background: #f0fdfa; color: var(--teal-dark);
+    font-weight: 600;
+  }
+  .mini-topup { font-size: 11px; margin-top: 3px; line-height: 1.5; }
+  .mini-topup.tu0 { color: #b45309; }
+  .mini-topup.tu1 { color: var(--teal-dark); }
+  .mini-topup.tu2 { color: #dc2626; }
   .version { text-align: center; font-size: 11px; color: #b7c9c5; margin-top: 14px; }
 
   /* 移动端底部导航 + 悬浮发布 */
@@ -507,6 +516,9 @@
             <div class="mini-body">
               <div class="mini-title">{{ it.title }}</div>
               <div class="mini-sub">¥{{ formatPrice(it.price) }} · {{ it.campus || '前湖' }}校区</div>
+              <div class="mini-topup" v-if="topupMap[it.id]" :class="'tu' + topupMap[it.id].status">
+                {{ topupText(topupMap[it.id]) }}
+              </div>
             </div>
             <div class="mini-actions">
               <span class="top-chip" v-if="it.isTop === 1">🔥 置顶中</span>
@@ -550,6 +562,7 @@
       </div>
 
       <button class="logout-btn" @click="logout">退出登录</button>
+      <el-button v-if="isAdmin" class="admin-entry" round @click="goAdmin">🛠 置顶审核后台</el-button>
       <div class="version">青售 v0.1 · 校园二手交易平台</div>
     </section>
   </main>
@@ -645,6 +658,7 @@
       const myItems = ref([]);
       const bought = ref([]);
       const sold = ref([]);
+      const topupMap = ref({});
       const segment = ref('items');
 
       // ---- 申请置顶弹窗 ----
@@ -714,6 +728,12 @@
         const name = profile.value.realName || (user.value && user.value.realName) ||
                      (user.value && user.value.username) || '青';
         return String(name).slice(0, 1).toUpperCase();
+      });
+
+      const isAdmin = computed(() => {
+        const role = (profile.value && profile.value.role) ||
+                     (user.value && user.value.role);
+        return role === 2;
       });
 
       const currentOrders = computed(() => segment.value === 'bought' ? bought.value : sold.value);
@@ -839,6 +859,18 @@
           // 订单先排序再渲染：未完成在前、已完成在后，组内按时间从新到旧
           bought.value = sortOrders((trades && trades.bought) || []);
           sold.value = sortOrders((trades && trades.sold) || []);
+
+          // 置顶申请状态：同一商品取最新一条，用于展示「待审核 / 已通过 / 已拒绝原因」
+          try {
+            const myTopups = await apiGet('/api/topup/my');
+            const map = {};
+            (myTopups || []).forEach(apply => {
+              if (!map[apply.itemId]) map[apply.itemId] = apply;
+            });
+            topupMap.value = map;
+          } catch (e) {
+            // 置顶信息加载失败不影响主流程
+          }
         } catch (e) {
           ElementPlus.ElMessage.error(e.message);
         }
@@ -894,6 +926,18 @@
 
       function goDetail(item) {
         location.href = 'detail.html?id=' + item.id;
+      }
+
+      function goAdmin() {
+        location.href = 'admin.html';
+      }
+
+      /** 我发布的商品对应的最新置顶申请状态文案 */
+      function topupText(apply) {
+        if (!apply) return '';
+        if (apply.status === 0) return '置顶申请：待审核';
+        if (apply.status === 1) return '置顶申请：已通过';
+        return '置顶申请已拒绝：' + (apply.rejectReason || '未填写原因');
       }
 
       function logout() {
@@ -1102,9 +1146,9 @@
       return {
         user, tab, isMobile, navs, messages,
         campuses, campus, keyword, items, total, page, loading, loadingMore, noMore, error,
-        profile, myItems, bought, sold, segments, segment, currentOrders,
+        profile, myItems, bought, sold, topupMap, segments, segment, currentOrders,
         topupDialogVisible, topupItem, selectedDays, topupSubmitting, plans, qrSrc, planPrice,
-        adminWechat, copyAdminWechat,
+        adminWechat, copyAdminWechat, isAdmin, goAdmin, topupText,
         openTopup, submitTopup, onQrError,
         avatarText, switchTab, pickCampus, loadItems, reload, loadProfile,
         switchSegment, segmentCount, goPublish, goDetail, logout,

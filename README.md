@@ -110,8 +110,8 @@ MAIL_AUTH_CODE=你的SMTP授权码
 | 评价 | `POST /api/review`、`GET /api/review/user/{userId}` |
 | 上传 | `POST /api/upload`（form-data，字段 `file`） |
 | AI | `POST /api/ai/generate-desc` |
-| 置顶申请 | `POST /api/topup/apply`（body: `itemId` + `days`，金额后端按 1/7/30 天阶梯计算）、`GET /api/topup/my` |
-| 管理 | `POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject` |
+| 置顶申请 | `POST /api/topup/apply`（body: `itemId` + `days`，金额后端按 1/7/30 天阶梯计算）、`GET /api/topup/my`（含 `rejectReason`） |
+| 管理 | `POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`GET /api/admin/topup/pending`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject`（body 必填 `reason`） |
 
 所有接口统一返回 `{ "code": 200, "message": "...", "data": ... }`。
 
@@ -123,6 +123,7 @@ MAIL_AUTH_CODE=你的SMTP授权码
 | `index.html` | 主应用，响应式：手机底部导航 + 悬浮发布，桌面左侧固定边栏；主页搜索 + 校区 Tab（全部/上海路/前湖）+ **滑到底部无限滚动**（触底加载下一页、加载中动画、「没有更多啦」提示、切 Tab/搜索自动重置）；商品卡片 2 列 / 4 列自适应，🔥 急售、🏅 高信誉标签；消息（模拟）；我的（资料 / 信用分 / 我发布的 / 我买到的 / 我卖出的 / 退出登录）；订单支持买家「确认完成交易」、卖家「同意面交 / 拒绝接单」；**点击卡片跳转 `detail.html?id=`** |
 | `publish.html` | 发布闲置：标题、描述、价格、分类、校区、联系方式 + 图片上传（调 `/api/upload`，回显预览）；提交带 token 调 `/api/item`，成功后弹窗并返回首页 |
 | `detail.html` | 商品详情：大图、标题、价格、描述、卖家信息（🏅 高信誉）；底部「我想要」按钮，登录后弹窗展示联系方式；复制按钮按内容动态显示「复制QQ号 / 复制微信号 / 一键复制」；支持弹窗内「直接下单」填写交易地点创建订单 |
+| `admin.html` | 管理员置顶审核后台：待审核申请列表（商品名 / 天数 / 金额 / 申请人 / 时间），支持「确认收款并置顶」和「拒绝」（拒绝需填写原因） |
 
 前端通过 `http://localhost:8080` 直连后端，CORS 已全开放。建议用 `start-frontend.cmd` 起静态服务（`python -m http.server 5173`），不要直接双击 HTML。
 

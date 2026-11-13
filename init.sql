@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS `top_up_apply` (
   `days`        INT             NOT NULL                COMMENT '置顶天数，只允许 1 / 7 / 30',
   `amount`      DECIMAL(10,2)   NOT NULL                COMMENT '应付金额（元），由后端按阶梯价计算，不信任前端',
   `status`      TINYINT         NOT NULL DEFAULT 0      COMMENT '状态：0=待审核，1=已通过（已置顶），2=已拒绝',
+  `reject_reason` VARCHAR(255)  NULL                    COMMENT '拒绝原因（仅 status=2 时有值，管理员填写）',
   `create_time` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
   PRIMARY KEY (`id`),
   KEY `idx_topup_apply_item`   (`item_id`)                  COMMENT '按商品查申请',

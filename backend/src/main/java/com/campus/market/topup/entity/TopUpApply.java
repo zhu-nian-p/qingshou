@@ -33,6 +33,9 @@ public class TopUpApply {
 
     private Integer status;
 
+    /** 拒绝原因（仅 status=2 时有值） */
+    private String rejectReason;
+
     @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     private LocalDateTime createTime;
 }

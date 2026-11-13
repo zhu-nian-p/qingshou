@@ -15,7 +15,8 @@ public interface TopUpApplyMapper extends BaseMapper<TopUpApply> {
     @Update("UPDATE `top_up_apply` SET status = 1 WHERE id = #{id} AND status = 0")
     int approve(@Param("id") Long id);
 
-    /** 0=待审核 -> 2=已拒绝 */
-    @Update("UPDATE `top_up_apply` SET status = 2 WHERE id = #{id} AND status = 0")
-    int reject(@Param("id") Long id);
+    /** 0=待审核 -> 2=已拒绝，并记录拒绝原因 */
+    @Update("UPDATE `top_up_apply` SET status = 2, reject_reason = #{reason} "
+            + "WHERE id = #{id} AND status = 0")
+    int reject(@Param("id") Long id, @Param("reason") String reason);
 }

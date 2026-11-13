@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>置顶审核后台 · 青售</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.css">
+<style>
+  :root {
+    --teal: #14b8a6; --teal-dark: #0f766e; --mint: #f0fdfa; --ink: #0f2e2a; --gray: #6b7f7c;
+    --line: #e3f6f1;
+    --el-color-primary: #14b8a6;
+    --el-color-primary-light-3: #4dd4c4;
+    --el-color-primary-light-5: #7fe3d7;
+    --el-color-primary-light-7: #b3f0e9;
+    --el-color-primary-light-9: #e6fffa;
+    --el-color-primary-dark-2: #0f9b8d;
+  }
+  * { box-sizing: border-box; }
+  [v-cloak] { display: none; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(900px 420px at 8% -10%, #ccfbf1 0%, rgba(204,251,241,0) 60%),
+      #f7fffd;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; background: rgba(255,255,255,.92);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .topbar .back {
+    border: none; background: #e6fffa; color: var(--teal-dark);
+    width: 34px; height: 34px; border-radius: 10px; font-size: 16px; cursor: pointer;
+  }
+  .topbar h1 { font-size: 17px; margin: 0; }
+  .topbar .logo {
+    margin-left: auto; font-weight: 800; font-size: 20px; letter-spacing: 2px;
+    background: linear-gradient(135deg, #0d9488, #2dd4bf 60%, #67e8f9);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 16px 14px 40px; }
+
+  .summary {
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #fff;
+    border-radius: 18px; padding: 18px 20px;
+    box-shadow: 0 12px 28px rgba(13,148,136,.25);
+  }
+  .sum-num { font-size: 32px; font-weight: 800; line-height: 1; }
+  .sum-label { font-size: 13px; opacity: .92; }
+  .refresh { margin-left: auto; }
+
+  .apply-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+  .apply {
+    background: #fff; border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; box-shadow: 0 6px 16px rgba(13,148,136,.05);
+  }
+  .apply-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .apply-title { font-size: 15px; font-weight: 700; line-height: 1.5; }
+  .apply-amount { font-size: 20px; font-weight: 800; color: var(--teal-dark); white-space: nowrap; }
+  .apply-meta {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    font-size: 12px; color: #8aa; margin-top: 10px;
+  }
+  .apply-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+  .note {
+    margin-top: 18px; font-size: 12px; line-height: 1.7; color: #6b7f7c;
+    background: #f4fffd; border: 1px dashed #b8f0e6; border-radius: 12px; padding: 10px 12px;
+  }
+
+  .state-box { text-align: center; padding: 60px 20px; color: var(--gray); }
+  .state-box .emoji { font-size: 44px; margin-bottom: 10px; }
+  .state-title { font-size: 16px; font-weight: 700; color: var(--teal-dark); margin-bottom: 6px; }
+  .state-desc { font-size: 13px; margin-bottom: 14px; }
+  .dot-spinner {
+    display: inline-block; width: 16px; height: 16px; margin-right: 8px;
+    border: 2px solid #c8eee7; border-top-color: #14b8a6; border-radius: 50%;
+    vertical-align: -3px; animation: qs-spin .8s linear infinite;
+  }
+  @keyframes qs-spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+
+<body>
+<div id="app" v-cloak>
+  <header class="topbar">
+    <button class="back" @click="goHome">‹</button>
+    <h1>置顶审核后台</h1>
+    <div class="logo">青售</div>
+  </header>
+
+  <div class="wrap">
+    <div class="summary">
+      <div>
+        <div class="sum-num">{{ applies.length }}</div>
+        <div class="sum-label">条待审核置顶申请</div>
+      </div>
+      <el-button class="refresh" size="small" round @click="load" :loading="loading">刷新</el-button>
+    </div>
+
+    <div v-if="loading" class="state-box">
+      <span class="dot-spinner"></span>加载中…
+    </div>
+
+    <div v-else-if="error" class="state-box">
+      <div class="emoji">😥</div>
+      <div class="state-title">加载失败</div>
+      <div class="state-desc">{{ error }}</div>
+      <el-button type="primary" round @click="load">重试</el-button>
+    </div>
+
+    <div v-else-if="applies.length === 0" class="state-box">
+      <div class="emoji">🎉</div>
+      <div class="state-title">暂无待审核申请</div>
+      <div class="state-desc">用户提交置顶申请后会出现在这里</div>
+    </div>
+
+    <div v-else class="apply-list">
+      <div class="apply" v-for="a in applies" :key="a.id">
+        <div class="apply-head">
+          <div class="apply-title">{{ a.itemTitle || ('商品 #' + a.itemId) }}</div>
+          <div class="apply-amount">¥{{ formatAmount(a.amount) }}</div>
+        </div>
+        <div class="apply-meta">
+          <span>⏱ 置顶 {{ a.days }} 天</span>
+          <span>👤 申请人 #{{ a.userId }}</span>
+          <span>🕒 {{ formatTime(a.createTime) }}</span>
+        </div>
+        <div class="apply-actions">
+          <el-button type="primary" round @click="approve(a)">确认收款并置顶</el-button>
+          <el-button round @click="reject(a)">拒绝</el-button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      提示：点「确认收款并置顶」前请先核对微信 / 支付宝到账记录；拒绝时需填写原因，用户会在「我发布的」看到该原因。
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.full.min.js"></script>
+<script>
+  const { createApp, ref, onMounted } = Vue;
+  const API_BASE = 'http://localhost:8080';
+  const TOKEN_KEY = 'qingshou_token';
+  const USER_KEY = 'qingshou_user';
+
+  // 未登录 / 非管理员直接回首页
+  if (!localStorage.getItem(TOKEN_KEY)) {
+    location.replace('login.html');
+  }
+
+  createApp({
+    setup() {
+      const applies = ref([]);
+      const loading = ref(false);
+      const error = ref('');
+
+      const user = (() => {
+        try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch (e) { return null; }
+      })();
+
+      if (!user || user.role !== 2) {
+        ElementPlus.ElMessage.warning('需要管理员账号才能访问审核后台');
+        setTimeout(() => { location.replace('index.html'); }, 800);
+      }
+
+      function authHeaders() {
+        return { Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '') };
+      }
+
+      function goHome() {
+        location.href = 'index.html';
+      }
+
+      async function load() {
+        loading.value = true;
+        error.value = '';
+        try {
+          const res = await fetch(API_BASE + '/api/admin/topup/pending', { headers: authHeaders() });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            location.replace('login.html');
+            return;
+          }
+          if (res.status === 403) {
+            throw new Error('需要管理员权限');
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || ('HTTP ' + res.status));
+          }
+          applies.value = json.data || [];
+        } catch (e) {
+          error.value = e.message || String(e);
+        } finally {
+          loading.value = false;
+        }
+      }
+
+      async function approve(a) {
+        try {
+          await ElementPlus.ElMessageBox.confirm(
+            `确认已收到 ¥${formatAmount(a.amount)}？通过后商品将置顶 ${a.days} 天。`,
+            '确认收款并置顶',
+            { confirmButtonText: '确认通过', cancelButtonText: '取消', type: 'warning' }
+          );
+        } catch (e) {
+          return;
+        }
+        await postAction(a.id, 'approve', {}, '审核通过，商品已置顶');
+      }
+
+      async function reject(a) {
+        let reason;
+        try {
+          const { value } = await ElementPlus.ElMessageBox.prompt(
+            '请填写拒绝原因（如：金额不符），用户会在「我发布的」看到。',
+            '拒绝置顶申请',
+            {
+              confirmButtonText: '确认拒绝',
+              cancelButtonText: '取消',
+              inputPlaceholder: '如：金额不符',
+              inputValidator: (v) => (v && v.trim() ? true : '拒绝原因不能为空')
+            }
+          );
+          reason = (value || '').trim();
+        } catch (e) {
+          return; // 取消
+        }
+        await postAction(a.id, 'reject', { reason }, '已拒绝申请');
+      }
+
+      async function postAction(id, action, body, successMsg) {
+        try {
+          const res = await fetch(API_BASE + '/api/admin/topup/' + id + '/' + action, {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify(body || {})
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '操作失败');
+          }
+          ElementPlus.ElMessage.success(successMsg);
+          await load();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '操作失败');
+        }
+      }
+
+      function formatAmount(v) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n.toFixed(2) : v;
+      }
+
+      function formatTime(t) {
+        if (!t) return '';
+        return String(t).replace('T', ' ').slice(0, 16);
+      }
+
+      onMounted(load);
+
+      return { applies, loading, error, load, approve, reject, goHome, formatAmount, formatTime };
+    }
+  }).use(ElementPlus).mount('#app');
+</script>
+</body>
+</html>

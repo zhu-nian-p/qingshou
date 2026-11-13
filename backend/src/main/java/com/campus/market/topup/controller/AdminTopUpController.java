@@ -3,12 +3,15 @@ package com.campus.market.topup.controller;
 import com.campus.market.common.BusinessException;
 import com.campus.market.common.Result;
 import com.campus.market.security.UserContext;
+import com.campus.market.topup.dto.RejectTopUpRequest;
 import com.campus.market.topup.dto.TopUpApplyVO;
 import com.campus.market.topup.service.TopUpService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,10 +37,12 @@ public class AdminTopUpController {
         return Result.success("青售提示：审核通过，商品已置顶", topUpService.approve(currentUserId(), id));
     }
 
-    /** 拒绝：申请状态改 2 */
+    /** 拒绝：状态改 2，并记录拒绝原因 */
     @PostMapping("/{id}/reject")
-    public Result<TopUpApplyVO> reject(@PathVariable Long id) {
-        return Result.success("青售提示：已拒绝该置顶申请", topUpService.reject(currentUserId(), id));
+    public Result<TopUpApplyVO> reject(@PathVariable Long id,
+                                       @Valid @RequestBody RejectTopUpRequest request) {
+        return Result.success("青售提示：已拒绝该置顶申请",
+                topUpService.reject(currentUserId(), id, request.getReason()));
     }
 
     private Long currentUserId() {

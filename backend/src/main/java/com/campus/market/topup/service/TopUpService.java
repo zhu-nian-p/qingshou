@@ -111,19 +111,27 @@ public class TopUpService {
         return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()));
     }
 
-    /** 管理员拒绝：状态改 2 */
+    /** 管理员拒绝：状态改 2，并记录拒绝原因 */
     @Transactional
-    public TopUpApplyVO reject(Long adminId, Long applyId) {
+    public TopUpApplyVO reject(Long adminId, Long applyId, String reason) {
         adminService.requireAdmin(adminId);
         TopUpApply apply = getExisting(applyId);
         if (apply.getStatus() != STATUS_PENDING) {
             throw BusinessException.badRequest("该置顶申请不是「待审核」状态");
         }
+        String trimmed = reason == null ? "" : reason.trim();
+        if (trimmed.isEmpty()) {
+            throw BusinessException.badRequest("拒绝原因不能为空");
+        }
+        if (trimmed.length() > 255) {
+            throw BusinessException.badRequest("拒绝原因不能超过 255 个字符");
+        }
 
-        int updated = topUpApplyMapper.reject(applyId);
+        int updated = topUpApplyMapper.reject(applyId, trimmed);
         if (updated != 1) {
             throw BusinessException.badRequest("申请状态已变化，请刷新后重试");
         }
+        log.info("管理员 {} 拒绝置顶申请 {}，原因：{}", adminId, applyId, trimmed);
         return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()));
     }
 
@@ -159,6 +167,7 @@ public class TopUpService {
         vo.setAmount(apply.getAmount());
         vo.setStatus(apply.getStatus());
         vo.setStatusText(statusText(apply.getStatus()));
+        vo.setRejectReason(apply.getRejectReason());
         vo.setCreateTime(apply.getCreateTime());
         return vo;
     }

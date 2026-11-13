@@ -28,5 +28,8 @@ public class TopUpApplyVO {
 
     private String statusText;
 
+    /** 拒绝原因（仅 status=2 时有值） */
+    private String rejectReason;
+
     private LocalDateTime createTime;
 }
