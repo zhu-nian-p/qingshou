@@ -1489,5 +1489,47 @@
     }
   }).use(ElementPlus).mount('#app');
 </script>
+<script>
+  // 订单通知 WebSocket（旧版单文件页面同样支持）
+  (function () {
+    let ws = null;
+    let retryTimer = null;
+    function currentToken() { return localStorage.getItem('qingshou_token'); }
+    function connect() {
+      const token = currentToken();
+      if (!token) return;
+      try {
+        ws = new WebSocket('ws://localhost:8080/ws?token=' + encodeURIComponent(token));
+      } catch (e) {
+        retryTimer = setTimeout(connect, 5000);
+        return;
+      }
+      ws.onmessage = function (event) {
+        if (event.data === 'pong') return;
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'NEW_ORDER') {
+            ElementPlus.ElNotification({
+              title: data.title || '青售提示',
+              message: data.message || '有新订单啦，请及时确认！',
+              type: 'success',
+              duration: 6000,
+              position: 'top-right'
+            });
+          }
+        } catch (e) { /* 非 JSON 消息忽略 */ }
+      };
+      ws.onclose = function () {
+        ws = null;
+        if (currentToken()) retryTimer = setTimeout(connect, 5000);
+      };
+    }
+    connect();
+    window.addEventListener('beforeunload', function () {
+      clearTimeout(retryTimer);
+      if (ws) { try { ws.close(); } catch (e) {} }
+    });
+  })();
+</script>
 </body>
 </html>

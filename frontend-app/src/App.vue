@@ -3,5 +3,8 @@
 </template>
 
 <script setup>
-// 全局只负责渲染路由，布局 shell 由各页面按需组合
+import { useOrderSocket } from '@/composables/useOrderSocket';
+
+// 登录后自动建立 WebSocket，订单消息由 ElNotification 弹出
+useOrderSocket();
 </script>

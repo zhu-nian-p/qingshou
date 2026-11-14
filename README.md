@@ -136,6 +136,30 @@ campus-market/
 
 实测结果：首次请求回源并生成缓存（TTL≈346s），二次请求命中；空结果缓存 TTL≈59s；编辑商品后版本号自增、列表立即返回新价格。
 
+## WebSocket 订单实时通知
+
+- **连接地址**：`ws://localhost:8080/ws?token={JWT}`（浏览器 WebSocket 无法带 Header，token 放查询参数）
+- **握手鉴权**：校验 JWT、用户存在且未被封禁；无 token / 过期直接 401
+- **会话管理**：按 userId 维护连接集合，同一账号多端在线都会收到；心跳 `ping/pong`
+- **推送时机**：买家下单成功后，通过 `@TransactionalEventListener(AFTER_COMMIT)` 在事务提交后推送，订单回滚不会误报
+- **消息体**：
+  ```json
+  {"type":"NEW_ORDER","title":"青售提示","message":"有新订单啦，请及时确认！","orderId":20,"itemId":3,"itemTitle":"iPad 第 9 代 64G"}
+  ```
+- **前端行为**：`frontend-app` 登录后自动连接，断线 5 秒重连，退出登录自动关闭；收到后 `ElNotification` 弹出「有新订单啦，请及时确认！」。旧版 `frontend/index.html` 也内联了同样的连接逻辑。
+- **生产部署**：Nginx 需要转发 WebSocket 升级：
+  ```nginx
+  location /ws {
+      proxy_pass http://127.0.0.1:8080;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      proxy_read_timeout 3600s;
+  }
+  ```
+
+> 实测：alice01 登录后建立连接（后端日志 `WebSocket 连接建立: userId=3`），buyer01 下单后前端收到并弹出「青售提示 / 有新订单啦，请及时确认！」。
+
 ## 关键配置
 
 `backend/src/main/resources/application.yml`：

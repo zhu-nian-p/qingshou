@@ -10,8 +10,10 @@ import com.campus.market.order.dto.OrderVO;
 import com.campus.market.order.entity.Order;
 import com.campus.market.order.mapper.OrderMapper;
 import com.campus.market.user.mapper.UserMapper;
+import com.campus.market.websocket.event.OrderCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +44,7 @@ public class OrderService {
     private final ItemMapper itemMapper;
     private final UserMapper userMapper;
     private final ItemListCacheService cacheService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 买家下单。
@@ -76,6 +79,9 @@ public class OrderService {
         order.setStatus(STATUS_PENDING_SELLER);
         orderMapper.insert(order);
         cacheService.evictAll();
+        // 事务提交后（AFTER_COMMIT）推送给卖家，避免回滚误通知
+        eventPublisher.publishEvent(new OrderCreatedEvent(
+                item.getSellerId(), order.getId(), item.getId(), item.getTitle()));
 
         return toVO(orderMapper.selectById(order.getId()), item);
     }
