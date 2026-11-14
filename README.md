@@ -160,6 +160,25 @@ campus-market/
 
 > 实测：alice01 登录后建立连接（后端日志 `WebSocket 连接建立: userId=3`），buyer01 下单后前端收到并弹出「青售提示 / 有新订单啦，请及时确认！」。
 
+## 接口限流 @RateLimit
+
+自定义注解 + AOP + Redis 实现固定窗口限流，防止刷接口：
+
+```java
+@RateLimit(time = 60, count = 5)   // 60 秒内最多 5 次
+@PostMapping
+public Result<?> publish(...) { ... }
+```
+
+- **实现**：`RateLimitAspect` 用 Lua 脚本执行 `INCR` + 首次 `EXPIRE`（原子操作），key 为
+  `qingshou:rate:{Controller}.{method}:{用户ID 或 IP}`
+- **限流维度**：已登录按 `userId`，未登录按客户端 IP（支持 `X-Forwarded-For`）
+- **超限响应**：HTTP/业务码 429，提示「手速太快啦，请稍后再试」
+- **降级**：Redis 异常时放行（fail-open），避免缓存故障拖垮业务
+- **已接入**：`POST /api/item`（发布商品）、`POST /api/user/send-code`（发送验证码），均为 60 秒 5 次
+
+实测：连续第 6 次发布/发码均返回 `code=429, message=手速太快啦，请稍后再试`；Redis 中对应 key `count=6`、TTL 正常递减。
+
 ## 关键配置
 
 `backend/src/main/resources/application.yml`：

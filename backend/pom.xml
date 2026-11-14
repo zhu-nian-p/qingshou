@@ -71,6 +71,12 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
+        <!-- AOP：@RateLimit 接口限流切面 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- 邮件：学校邮箱验证码注册 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

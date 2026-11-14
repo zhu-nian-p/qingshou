@@ -1,6 +1,7 @@
 package com.campus.market.user.controller;
 
 import com.campus.market.common.Result;
+import com.campus.market.common.ratelimit.RateLimit;
 import com.campus.market.user.dto.LoginRequest;
 import com.campus.market.user.dto.LoginResponse;
 import com.campus.market.user.dto.RegisterRequest;
@@ -28,8 +29,10 @@ public class UserController {
 
     /**
      * 发送学校邮箱验证码（无需登录）。
-     * 同一邮箱 1 分钟内只能发送一次，验证码 5 分钟内有效。
+     * 同一邮箱 1 分钟内只能发送一次，验证码 5 分钟内有效；
+     * 同一 IP 每分钟最多 5 次（@RateLimit）。
      */
+    @RateLimit(time = 60, count = 5)
     @PostMapping("/send-code")
     public Result<Void> sendCode(@Valid @RequestBody SendCodeRequest request) {
         emailCodeService.sendCode(request.getEmail());

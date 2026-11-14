@@ -2,6 +2,7 @@ package com.campus.market.item.controller;
 
 import com.campus.market.common.PageResult;
 import com.campus.market.common.Result;
+import com.campus.market.common.ratelimit.RateLimit;
 import com.campus.market.item.dto.ItemDetailVO;
 import com.campus.market.item.dto.ItemListVO;
 import com.campus.market.item.dto.ItemUpdateRequest;
@@ -26,7 +27,8 @@ public class ItemController {
 
     private final ItemService itemService;
 
-    /** 发布商品：必须登录，sellerId 取自 JWT */
+    /** 发布商品：必须登录，sellerId 取自 JWT；每分钟最多 5 次 */
+    @RateLimit(time = 60, count = 5)
     @PostMapping
     public Result<PublishItemResponse> publish(@Valid @RequestBody PublishItemRequest request) {
         return Result.success("青售提示：发布成功", itemService.publish(request));
