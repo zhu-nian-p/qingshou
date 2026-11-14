@@ -1,128 +1,172 @@
-﻿# 闈掑敭 路 鏍″洯浜屾墜浜ゆ槗骞冲彴
+# 青售 · 校园二手交易平台
 
-涓€涓潰鍚戞牎鍥殑浜屾墜浜ゆ槗骞冲彴锛歋pring Boot 3 + MySQL 8 + Redis锛屽墠绔负鍗曟枃浠?Vue3 + Element Plus銆?
-## 鎶€鏈爤
+一个面向校园的二手交易平台：Spring Boot 3 + MySQL 8 + Redis，前端为 Vite + Vue3 + Element Plus 工程。
 
-| 灞?| 鎶€鏈?|
+> 项目完成总结（存档版）：[docs/项目完成总结.md](docs/项目完成总结.md)
+
+## 技术栈
+
+| 层 | 技术 |
 |---|---|
-| 鍚庣 | Spring Boot 3.5.16銆丮yBatis-Plus 3.5.18銆丣WT锛坖jwt 0.12锛夈€丅Crypt |
-| 鏁版嵁搴?| MySQL 8.0锛圖ocker锛夈€丷edis 7锛圖ocker锛?|
-| 閭欢 | QQ 閭 SMTP锛坰mtp.qq.com:465 + SSL锛夛紝鐢ㄤ簬瀛︽牎閭楠岃瘉鐮佹敞鍐?|
-| 鍓嶇 | Vue 3 + Element Plus锛圕DN 寮曞叆锛屽崟鏂囦欢 `frontend/index.html`锛?|
-| AI | DeepSeek Chat Completions锛堝彲閫夛紝鏈厤缃?Key 鏃惰繑鍥炴ā鎷熸枃妗堬級 |
+| 后端 | Spring Boot 3.5.16、MyBatis-Plus 3.5.18、JWT（jjwt 0.12）、BCrypt |
+| 数据库 | MySQL 8.0（Docker）、Redis 7（Docker） |
+| 邮件 | QQ 邮箱 SMTP（smtp.qq.com:465 + SSL），用于学校邮箱验证码注册 |
+| 前端 | Vue 3 + Vite 6 + Element Plus 2.14 + Pinia + Vue Router + ECharts（`frontend-app`） |
+| AI | DeepSeek Chat Completions（可选，未配置 Key 时返回模拟文案） |
 
-## 鐩綍缁撴瀯
+## 目录结构
 
 ```
 campus-market/
-鈹溾攢鈹€ backend/                     Spring Boot 鍚庣
-鈹?  鈹溾攢鈹€ src/main/java/com/campus/market/
-鈹?  鈹?  鈹溾攢鈹€ user/                鐢ㄦ埛锛氭敞鍐屻€佺櫥褰曘€佷釜浜轰腑蹇?鈹?  鈹?  鈹溾攢鈹€ item/                鍟嗗搧锛氬彂甯冦€佸垪琛ㄦ悳绱€佽鎯?鈹?  鈹?  鈹溾攢鈹€ order/               璁㈠崟 + 瓒呮椂鍙栨秷瀹氭椂浠诲姟
-鈹?  鈹?  鈹溾攢鈹€ review/              璇勪环锛堜拱瀹惰瘎鍗栧锛岃仈鍔ㄤ俊鐢ㄥ垎锛?鈹?  鈹?  鈹溾攢鈹€ topup/               缃《璐拱锛堢敵璇?瀹℃牳锛?鈹?  鈹?  鈹溾攢鈹€ admin/               绠＄悊鍛橈細缃《銆佸皝绂?鈹?  鈹?  鈹溾攢鈹€ ai/                  DeepSeek 鏂囨鐢熸垚
-鈹?  鈹?  鈹溾攢鈹€ file/                鍥剧墖涓婁紶
-鈹?  鈹?  鈹溾攢鈹€ security/            JWT 鎷︽埅鍣ㄣ€佷笂涓嬫枃
-鈹?  鈹?  鈹斺攢鈹€ common/              缁熶竴杩斿洖銆佸紓甯稿鐞嗐€佹晱鎰熻瘝
-鈹?  鈹斺攢鈹€ src/main/resources/application.yml
-鈹溾攢鈹€ frontend-app/                Vite + Vue3 鍓嶇宸ョ▼锛堝敮涓€鍓嶇锛?鈹?  鈹溾攢鈹€ src/
-鈹?  鈹?  鈹溾攢鈹€ components/          缁勪欢锛欰ppShell / ItemCard / 寮圭獥绛?鈹?  鈹?  鈹溾攢鈹€ views/               椤甸潰锛歀ogin / Home / Profile / Publish / Detail / Admin
-鈹?  鈹?  鈹溾攢鈹€ router/              Vue Router + 閴存潈瀹堝崼
-鈹?  鈹?  鈹溾攢鈹€ stores/              Pinia锛堢敤鎴?Token / 璧勬枡锛?鈹?  鈹?  鈹溾攢鈹€ api/                 fetch 灏佽锛坱oken 娉ㄥ叆銆?01 澶勭悊锛?鈹?  鈹?  鈹溾攢鈹€ constants/           鐢ㄦ埛鍗忚 / 闅愮鏀跨瓥 / 鍏嶈矗澹版槑鏂囨湰
-鈹?  鈹?  鈹斺攢鈹€ styles/              鍏ㄥ眬涓婚鏍峰紡
-鈹?  鈹溾攢鈹€ vite.config.js           dev 绔彛 5174 + /api銆?uploads銆?ws 浠ｇ悊
-鈹?  鈹斺攢鈹€ README.md                鍓嶇宸ョ▼杩愯璇存槑
-鈹溾攢鈹€ sql/                         澧為噺杩佺Щ鑴氭湰锛?02 ~ 012锛?鈹溾攢鈹€ docs/                        鏂囨。涓庢埅鍥?鈹溾攢鈹€ init.sql                     鍏ㄩ噺寤哄簱寤鸿〃鑴氭湰
-鈹溾攢鈹€ docker-compose.yml           MySQL + Redis
-鈹溾攢鈹€ start-backend.cmd / .ps1     鍚姩鍚庣
-鈹溾攢鈹€ stop-backend.cmd / .ps1      鍋滄鍚庣锛堥噴鏀?8080锛?鈹溾攢鈹€ start-frontend.cmd           鍚姩 Vite 鍓嶇锛?174锛?鈹溾攢鈹€ build-backend.cmd            鎵撳寘鍚庣 jar
-鈹溾攢鈹€ .env.local                   鏈湴瀵嗛挜锛堝凡 gitignore锛屼笉杩涚増鏈簱锛?鈹斺攢鈹€ .tools/                      渚挎惡 JDK17 + Maven锛堝凡 gitignore锛?```
+├── backend/                     Spring Boot 后端
+│   ├── src/main/java/com/campus/market/
+│   │   ├── user/                用户：注册、登录、个人中心
+│   │   ├── item/                商品：发布、列表搜索、详情
+│   │   ├── order/               订单 + 超时取消定时任务
+│   │   ├── review/              评价（买家评卖家，联动信用分）
+│   │   ├── topup/               置顶购买（申请/审核）
+│   │   ├── admin/               管理员：置顶、封禁
+│   │   ├── ai/                  DeepSeek 文案生成
+│   │   ├── file/                图片上传
+│   │   ├── security/            JWT 拦截器、上下文
+│   │   └── common/              统一返回、异常处理、敏感词
+│   └── src/main/resources/application.yml
+├── frontend-app/                Vite + Vue3 前端工程（唯一前端）
+│   ├── src/
+│   │   ├── components/          组件：AppShell / ItemCard / 弹窗等
+│   │   ├── views/               页面：Login / Home / Profile / Publish / Detail / Admin
+│   │   ├── router/              Vue Router + 鉴权守卫
+│   │   ├── stores/              Pinia（用户 Token / 资料）
+│   │   ├── api/                 fetch 封装（token 注入、401 处理）
+│   │   ├── constants/           用户协议 / 隐私政策 / 免责声明文本
+│   │   └── styles/              全局主题样式
+│   ├── vite.config.js           dev 端口 5174 + /api、/uploads、/ws 代理
+│   └── README.md                前端工程运行说明
+├── sql/                         增量迁移脚本（002 ~ 014）
+├── docs/                        文档与截图
+├── init.sql                     全量建库建表脚本
+├── docker-compose.yml           MySQL + Redis
+├── start-backend.cmd / .ps1     启动后端
+├── stop-backend.cmd / .ps1      停止后端（释放 8080）
+├── start-frontend.cmd           启动 Vite 前端（5174）
+├── build-backend.cmd            打包后端 jar
+├── .env.local                   本地密钥（已 gitignore，不进版本库）
+└── .tools/                      便携 JDK17 + Maven（已 gitignore）
+```
 
-## 蹇€熷惎鍔紙姣忔寮€鍙戠殑鏍囧噯姝ラ锛?
-1. **鍚姩 Docker Desktop**锛岀瓑鐘舵€佸彉鎴?Running
-2. 鍦ㄩ」鐩牴鐩綍鍚姩渚濊禆瀹瑰櫒锛?   ```powershell
+## 快速启动（每次开发的标准步骤）
+
+1. **启动 Docker Desktop**，等状态变成 Running
+2. 在项目根目录启动依赖容器：
+   ```powershell
    cd D:\campus-market
    docker compose up -d
-   docker compose ps        # mysql / redis 涓や釜瀹瑰櫒閮藉簲涓?healthy
+   docker compose ps        # mysql / redis 两个容器都应为 healthy
    ```
-   > 棣栨鍒濆鍖栦細鑷姩鎵ц `init.sql`锛涘凡鏈夋暟鎹簱鍗囩骇鏃讹紝鎸夐『搴忔墽琛?`sql/002 ~ 014` 鐨勫閲忚剼鏈€?3. **鍚姩鍚庣**锛氬弻鍑?`start-backend.cmd`
-   - 鎴愬姛鏍囧織锛氭棩蹇楀嚭鐜?`Tomcat started on port 8080` 鍜?`Started CampusMarketApplication`
-   - 鍚庣鍦板潃锛歨ttp://localhost:8080
-4. **鍚姩鍓嶇**锛氬弻鍑?`start-frontend.cmd`锛圴ite 宸ョ▼锛宧ttp://localhost:5174锛?   - 棣栨杩愯浼氳嚜鍔?`npm install`锛堥渶瑕?Node.js 18+锛?   - 涔熷彲鎵嬪姩锛歚cd frontend-app && npm run dev`
-5. **鍋滄**锛氬弻鍑?`stop-backend.cmd` 鍋滄鍚庣锛堥噴鏀?8080锛夛紝鍓嶇鍦ㄥ懡浠よ Ctrl+C 鍋滄锛堥噴鏀?5174锛?
-> 鍚庣鏃ュ織鍦?`logs\startup-*.log`锛屽惎鍔ㄥけ璐ユ椂鎶婃渶鍚?30 琛屽彂鍑烘潵鍗冲彲瀹氫綅銆?> `.env.local` 淇濆瓨鏈満瀵嗛挜锛歚JWT_SECRET`銆丏eepSeek Key銆侀偖绠辨巿鏉冪爜锛涘惎鍔ㄨ剼鏈細鑷姩鍔犺浇锛屼笉浼氳繘 git銆?> 鏃х増 `frontend/*.html` 宸插垹闄わ紝鍙淮鎶?`frontend-app` 涓€濂椾唬鐮併€?
-## 娴嬭瘯璐﹀彿
+   > 首次初始化会自动执行 `init.sql`；已有数据库升级时，按顺序执行 `sql/002 ~ 014` 的增量脚本。
+3. **启动后端**：双击 `start-backend.cmd`
+   - 成功标志：日志出现 `Tomcat started on port 8080` 和 `Started CampusMarketApplication`
+   - 后端地址：http://localhost:8080
+4. **启动前端**：双击 `start-frontend.cmd`（Vite 工程，http://localhost:5174）
+   - 首次运行会自动 `npm install`（需要 Node.js 18+）
+   - 也可手动：`cd frontend-app && npm run dev`
+5. **停止**：双击 `stop-backend.cmd` 停止后端（释放 8080），前端在命令行 Ctrl+C 停止（释放 5174）
 
-| 瑙掕壊 | 璐﹀彿 | 瀵嗙爜 | 璇存槑 |
+> 后端日志在 `logs\startup-*.log`，启动失败时把最后 30 行发出来即可定位。
+> `.env.local` 保存本机密钥：`JWT_SECRET`、DeepSeek Key、邮箱授权码；启动脚本会自动加载，不会进 git。
+> 旧版 `frontend/*.html` 已删除，只维护 `frontend-app` 一套代码。
+
+## 测试账号
+
+| 角色 | 账号 | 密码 | 说明 |
 |---|---|---|---|
-| 鍗栧 | alice01 | 123456 | 宸插彂甯?4 浠跺晢鍝侊紝淇＄敤鍒?120锛堟紨绀洪珮淇¤獕鏍囩锛?|
-| 涔板 | buyer01 | 123456 | 鐢ㄤ簬涓嬪崟 / 瀹屾垚浜ゆ槗 |
-| 涔板 | buyer02 | 123456 | 鐢ㄤ簬娴嬪苟鍙?鎶㈠崟 |
-| 绠＄悊鍛?| admin01 | 123456 | role=2锛屽敮涓€绠＄悊鍛橈紱鍙疆椤跺鏍搞€佸皝绂佺敤鎴?|
+| 卖家 | alice01 | 123456 | 已发布 4 件商品，信用分 120（演示高信誉标签） |
+| 买家 | buyer01 | 123456 | 用于下单 / 完成交易 |
+| 买家 | buyer02 | 123456 | 用于测并发/抢单 |
+| 管理员 | admin01 | 123456 | role=2，唯一管理员；可置顶审核、举报处理、封禁用户 |
 
-> 瑙掕壊瀛楁 `user.role`锛?*1=鏅€氱敤鎴凤紝2=绠＄悊鍛?*銆傚彧鏈?admin01 鑳借繘鍏ョ鐞嗗悗鍙般€?> 娉ㄥ唽鏂拌处鍙烽渶瑕?`.edu.cn` 瀛︽牎閭 + 閭楠岃瘉鐮併€?
-## 椤甸潰鍦板潃
+> 角色字段 `user.role`：**1=普通用户，2=管理员**。只有 admin01 能进入管理后台。
+> 注册新账号需要 `.edu.cn` 学校邮箱 + 邮箱验证码。
 
-鏂扮増 Vite 宸ョ▼锛堟帹鑽愶紝绔彛 5174锛夛細
+## 页面地址
 
-| 椤甸潰 | 鍦板潃 | 璇存槑 |
+新版 Vite 工程（推荐，端口 5174）：
+
+| 页面 | 地址 | 说明 |
 |---|---|---|
-| 鐧诲綍 / 娉ㄥ唽 | http://localhost:5174/login | 鏈櫥褰曡闂叾浠栭〉闈細鑷姩璺宠繖閲?|
-| 棣栭〉 | http://localhost:5174/ | 鎼滅储銆佹牎鍖虹瓫閫夈€侀鏋跺睆銆佹棤闄愭粴鍔?|
-| 娑堟伅 | http://localhost:5174/messages | 妯℃嫙閫氱煡 |
-| 鎴戠殑 | http://localhost:5174/profile | 鎴戝彂甯冪殑 / 鎴戜拱鍒扮殑 / 鎴戝崠鍑虹殑 |
-| 鍙戝竷闂茬疆 | http://localhost:5174/publish | 闇€鐧诲綍 |
-| 鍟嗗搧璇︽儏 | http://localhost:5174/detail/3 | `3` 涓哄晢鍝?ID |
-| 绠＄悊鍚庡彴 | http://localhost:5174/admin | 浠?admin01 鍙繘 |
+| 登录 / 注册 | http://localhost:5174/login | 未登录访问其他页面会自动跳这里 |
+| 首页 | http://localhost:5174/ | 搜索、校区筛选、骨架屏、无限滚动 |
+| 消息 | http://localhost:5174/messages | 模拟通知 |
+| 我的 | http://localhost:5174/profile | 我发布的 / 我买到的 / 我卖出的 |
+| 发布闲置 | http://localhost:5174/publish | 需登录 |
+| 商品详情 | http://localhost:5174/detail/3 | `3` 为商品 ID |
+| 管理后台 | http://localhost:5174/admin | 仅 admin01 可进 |
 
-鏃х増闈欐€侀〉宸插垹闄わ紝鍙繚鐣?`frontend-app` 涓€濂楀墠绔唬鐮併€?
-## 鍓嶇宸ョ▼鍖栬鏄庯紙Vite + Vue3锛?
-- **缁勪欢鎷嗗垎**锛歚AppShell`锛堜晶杈规爮/搴曢儴瀵艰埅锛夈€乣ItemCard`銆乣SkeletonGrid`銆乣TopUpDialog`銆乣EditItemDialog`銆乣ReviewDialog`
-- **璺敱**锛歏ue Router锛坄/login`銆乣/`銆乣/messages`銆乣/profile`銆乣/publish`銆乣/detail/:id`銆乣/admin`锛夛紝甯︾櫥褰?绠＄悊鍛樺畧鍗?- **鐘舵€?*锛歅inia `useUserStore` 绠＄悊 token銆佺敤鎴疯祫鏂欍€佺櫥褰曠櫥鍑猴紝骞舵寔涔呭寲鍒?localStorage
-- **鎺ュ彛灞?*锛歚src/api/http.js` 缁熶竴娉ㄥ叆 token锛?01 鑷姩娓呯悊鐧诲綍鎬佸苟璺宠浆鐧诲綍椤?- **寮€鍙戜唬鐞?*锛歏ite 鎶?`/api`銆乣/uploads`銆乣/ws` 浠ｇ悊鍒?`http://localhost:8080`
-- 璇︾粏鍛戒护涓庣洰褰曡 `frontend-app/README.md`
+旧版静态页已删除，只保留 `frontend-app` 一套前端代码。
 
-## 瀹夊叏鍔犲浐锛堜笂绾垮墠 P0 淇锛?
-| 椤?| 瀹炵幇 |
+## 前端工程化说明（Vite + Vue3）
+
+- **组件拆分**：`AppShell`（侧边栏/底部导航）、`ItemCard`、`SkeletonGrid`、`TopUpDialog`、`EditItemDialog`、`ReviewDialog`
+- **路由**：Vue Router（`/login`、`/`、`/messages`、`/profile`、`/publish`、`/detail/:id`、`/admin`），带登录/管理员守卫
+- **状态**：Pinia `useUserStore` 管理 token、用户资料、登录登出，并持久化到 localStorage
+- **接口层**：`src/api/http.js` 统一注入 token，401 自动清理登录态并跳转登录页
+- **开发代理**：Vite 把 `/api`、`/uploads`、`/ws` 代理到 `http://localhost:8080`
+- 详细命令与目录见 `frontend-app/README.md`
+
+## 安全加固（上线前 P0 修复）
+
+| 项 | 实现 |
 |---|---|
-| 閭鍞竴 | `user.school_email` 鍞竴绱㈠紩锛堣縼绉?010锛夛紱娉ㄥ唽鍓嶆鏌ラ偖绠辨槸鍚﹀凡娉ㄥ唽 |
-| 閲嶇疆瀵嗙爜闃叉帴绠?| 蹇呴』鍚屾椂鍖归厤銆岀敤鎴峰悕 + 閭 + 楠岃瘉鐮併€嶏紝缂轰竴涓嶅彲 |
-| 鍙屽悜纭浜ゆ槗 | `0 寰呴潰浜?鈫?4 寰呭崠瀹剁‘璁ゅ畬鎴?鈫?1 宸插畬鎴恅锛涗拱瀹剁‘璁ゅ彧鏀硅鍗曠姸鎬侊紝**鍗栧纭鍚?*鎵嶅敭鍑哄晢鍝併€佸弻鏂?+1 淇＄敤鍒?|
-| 鑱旂郴鏂瑰紡闃茬埇 | 璇︽儏鎺ュ彛鍙繑鍥炴帺鐮侊紙濡?`wx: xia***01`锛夛紱瀹屾暣鍊艰蛋 `GET /api/item/{id}/contact`锛宍@RateLimit(60s, 3娆?`锛岀偣鍑诲鍒舵墠璇锋眰 |
-| 涓婁紶閰嶉 | 姣忕敤鎴锋渶澶?50 寮狅紙`file_upload` 琛ㄧ粺璁★紝瓒呴檺 400锛?|
-| CORS 鐧藉悕鍗?| 榛樿鍙厑璁?`http://localhost:5174` / `127.0.0.1:5174`锛岀敓浜х敤 `CORS_ALLOWED_ORIGINS` 瑕嗙洊 |
-| JWT 瀵嗛挜 | 鍙粠鐜鍙橀噺 `JWT_SECRET` 璇诲彇锛堝啓鍦?`.env.local`锛岃嚦灏?32 瀛楃锛夛紝yml 涓嶅啀纭紪鐮?|
-| 绉诲姩绔敭鐩?| 杈撳叆妗嗚仛鐒﹁嚜鍔?`scrollIntoView`锛宍scroll-padding-bottom` 棰勭暀閿洏绌洪棿 |
-| 楠ㄦ灦灞?| 棣栭〉銆佹垜鐨勩€佺鐞嗗悗鍙拌〃鏍煎潎鏈夐鏋跺睆 |
-| 涓炬姤涓庝笅鏋?| `report` 琛?+ 璇︽儏椤典妇鎶ュ叆鍙?+ 绠＄悊鍚庡彴銆屼妇鎶ュ鐞嗐€峊ab锛屼竴閿笅鏋惰繚瑙勫晢鍝?|
-| 璁㈠崟闃插崰鍗?| 姣忎拱瀹舵渶澶?3 绗旇繘琛屼腑璁㈠崟锛涗拱瀹跺彲鍙栨秷锛涘緟闈氦 3 澶╄嚜鍔ㄥ彇娑?|
-| 绠＄悊鍛樺璁?| 缃《/灏佺/涓嬫灦绛夋搷浣滃啓鍏?`admin_audit_log` |
-| 鏁忔劅璇嶅缃?| 璇嶅簱杩佸埌 `application.yml` 鐨?`app.sensitive-words` |
+| 邮箱唯一 | `user.school_email` 唯一索引（迁移 010）；注册前检查邮箱是否已注册 |
+| 重置密码防接管 | 必须同时匹配「用户名 + 邮箱 + 验证码」，缺一不可 |
+| 双向确认交易 | `0 待面交 → 4 待卖家确认完成 → 1 已完成`；买家确认只改订单状态，**卖家确认后**才售出商品、双方 +1 信用分 |
+| 联系方式防爬 | 详情接口只返回掩码（如 `wx: xia***01`）；完整值走 `GET /api/item/{id}/contact`，`@RateLimit(60s, 3次)`，点击复制才请求 |
+| 上传配额 | 每用户最多 50 张（`file_upload` 表统计，超限 400） |
+| CORS 白名单 | 默认只允许 `http://localhost:5174` / `127.0.0.1:5174`，生产用 `CORS_ALLOWED_ORIGINS` 覆盖 |
+| JWT 密钥 | 只从环境变量 `JWT_SECRET` 读取（写在 `.env.local`，至少 32 字符），yml 不再硬编码 |
+| 移动端键盘 | 输入框聚焦自动 `scrollIntoView`，`scroll-padding-bottom` 预留键盘空间 |
+| 骨架屏 | 首页、我的、管理后台表格均有骨架屏 |
+| 举报与下架 | `report` 表 + 详情页举报入口 + 管理后台「举报处理」Tab，一键下架违规商品 |
+| 订单防占单 | 每买家最多 3 笔进行中订单；买家可取消；待面交 3 天自动取消 |
+| 管理员审计 | 置顶/封禁/下架等操作写入 `admin_audit_log` |
+| 敏感词外置 | 词库迁到 `application.yml` 的 `app.sensitive-words` |
 
-## 鍚堣涓庢硶寰嬫枃鏈?
-- 娉ㄥ唽椤垫柊澧?**鍚屾剰銆婄敤鎴峰崗璁€?銆婇殣绉佹斂绛栥€?* 鍕鹃€夋锛屾湭鍕鹃€変笉鍏佽娉ㄥ唽
-- 鍗忚涓庨殣绉佹斂绛栫畝鏄撴枃鏈湪 `frontend-app/src/constants/legal.js`锛屽脊绐楀彲婊氬姩闃呰
-- 鍏ㄧ珯椤佃剼灞曠ず鍏嶈矗澹版槑锛氬钩鍙颁粎鎻愪緵淇℃伅鎾悎锛岀嚎涓嬩氦鏄撻闄╄嚜璐?- 涓婄嚎鍓嶄粛闇€锛欼CP/鍏畨澶囨銆佸浘鐗囧唴瀹瑰鏍搞€佷妇鎶ョ敵璇夋祦绋嬪畬鍠勶紙璇﹁涓婄嚎璇勪及鎶ュ憡 P0 娓呭崟锛?
-## 鏁版嵁鐘舵€?
-浠撳簱榛樿鏁版嵁搴撲负骞插噣鐨勬紨绀烘暟鎹細4 浠跺湪鍞晢鍝侊紙item 3 缃《涓級銆? 涓祴璇曡处鍙枫€? 璁㈠崟銆? 缃《鐢宠銆? 璇勪环銆?鎵€鏈変笟鍔℃祦绋嬶紙娉ㄥ唽 鈫?鍙戝竷 鈫?娴忚 鈫?涓嬪崟 鈫?鍗栧纭 鈫?涔板纭闈氦 鈫?鍗栧纭瀹屾垚/鎷掔粷 鈫?璇勪环 鈫?缃《鐢宠 鈫?绠＄悊鍛樺鏍革級鍧囧彲鐩存帴鐢ㄤ笂杩拌处鍙疯窇閫氥€?
-## Redis 鍟嗗搧鍒楄〃缂撳瓨
+## 合规与法律文本
 
-棣栭〉 `/api/item/list` 宸叉帴鍏?Redis 缂撳瓨锛? 鏍?4G 閮ㄧ讲涓嶅紩鍏?Elasticsearch锛屾悳绱粛璧?MySQL锛夛細
+- 注册页新增 **同意《用户协议》/《隐私政策》** 勾选框，未勾选不允许注册
+- 协议与隐私政策简易文本在 `frontend-app/src/constants/legal.js`，弹窗可滚动阅读
+- 全站页脚展示免责声明：平台仅提供信息撮合，线下交易风险自负
+- 上线前仍需：ICP/公安备案、图片内容审核、举报申诉流程完善（详见上线评估报告 P0 清单）
 
-- **缂撳瓨 key**锛歚qingshou:item:list:{md5(鐗堟湰鍙穦keyword|category|campus|sort|page|size)}`
-- **TTL**锛氭甯哥粨鏋?5 鍒嗛挓 + 闅忔満 0~60 绉掞紙闃查洩宕╋級锛涚┖缁撴灉鍥哄畾 60 绉掞紙闃茬┛閫忥級
-- **澶辨晥绛栫暐**锛氬彂甯冦€佺紪杈戙€佷笅鏋躲€佷笅鍗曘€佸畬鎴愪氦鏄撱€佸崠瀹舵嫆鍗曘€佽秴鏃跺彇娑堛€佺鐞嗗憳缃《/鍙栨秷缃《銆佺疆椤跺鏍搁€氳繃绛夊啓鎿嶄綔閮戒細鎵ц `INCR qingshou:item:list:version`锛屾墍鏈夋棫 key 绔嬪嵆閫昏緫澶辨晥
-- **闄嶇骇**锛歊edis 寮傚父鏃惰嚜鍔ㄥ洖閫€ MySQL 鏌ヨ锛屾帴鍙ｄ笉鎶ラ敊
+## 数据状态
 
-瀹炴祴缁撴灉锛氶娆¤姹傚洖婧愬苟鐢熸垚缂撳瓨锛圱TL鈮?46s锛夛紝浜屾璇锋眰鍛戒腑锛涚┖缁撴灉缂撳瓨 TTL鈮?9s锛涚紪杈戝晢鍝佸悗鐗堟湰鍙疯嚜澧炪€佸垪琛ㄧ珛鍗宠繑鍥炴柊浠锋牸銆?
-## WebSocket 璁㈠崟瀹炴椂閫氱煡
+仓库默认数据库为干净的演示数据：4 件在售商品（item 3 置顶中）、4 个测试账号、0 订单、0 置顶申请、0 评价、0 举报、0 审计日志。
+所有业务流程（注册 → 发布 → 浏览 → 下单 → 卖家确认 → 买家确认面交 → 卖家确认完成/拒绝 → 评价 → 置顶申请 → 管理员审核 → 举报处理）均可直接用上述账号跑通。
 
-- **杩炴帴鍦板潃**锛歚ws://localhost:8080/ws?token={JWT}`锛堟祻瑙堝櫒 WebSocket 鏃犳硶甯?Header锛宼oken 鏀炬煡璇㈠弬鏁帮級
-- **鎻℃墜閴存潈**锛氭牎楠?JWT銆佺敤鎴峰瓨鍦ㄤ笖鏈灏佺锛涙棤 token / 杩囨湡鐩存帴 401
-- **浼氳瘽绠＄悊**锛氭寜 userId 缁存姢杩炴帴闆嗗悎锛屽悓涓€璐﹀彿澶氱鍦ㄧ嚎閮戒細鏀跺埌锛涘績璺?`ping/pong`
-- **鎺ㄩ€佹椂鏈?*锛氫拱瀹朵笅鍗曟垚鍔熷悗锛岄€氳繃 `@TransactionalEventListener(AFTER_COMMIT)` 鍦ㄤ簨鍔℃彁浜ゅ悗鎺ㄩ€侊紝璁㈠崟鍥炴粴涓嶄細璇姤
-- **娑堟伅浣?*锛?  ```json
-  {"type":"NEW_ORDER","title":"闈掑敭鎻愮ず","message":"鏈夋柊璁㈠崟鍟︼紝璇峰強鏃剁‘璁わ紒","orderId":20,"itemId":3,"itemTitle":"iPad 绗?9 浠?64G"}
+## Redis 商品列表缓存
+
+首页 `/api/item/list` 已接入 Redis 缓存（2 核 4G 部署不引入 Elasticsearch，搜索仍走 MySQL）：
+
+- **缓存 key**：`qingshou:item:list:{md5(版本号|keyword|category|campus|sort|page|size)}`
+- **TTL**：正常结果 5 分钟 + 随机 0~60 秒（防雪崩）；空结果固定 60 秒（防穿透）
+- **失效策略**：发布、编辑、下架、下单、完成交易、卖家拒单、超时取消、管理员置顶/取消置顶、置顶审核通过等写操作都会执行 `INCR qingshou:item:list:version`，所有旧 key 立即逻辑失效
+- **降级**：Redis 异常时自动回退 MySQL 查询，接口不报错
+
+实测结果：首次请求回源并生成缓存（TTL≈346s），二次请求命中；空结果缓存 TTL≈59s；编辑商品后版本号自增、列表立即返回新价格。
+
+## WebSocket 订单实时通知
+
+- **连接地址**：`ws://localhost:8080/ws?token={JWT}`（浏览器 WebSocket 无法带 Header，token 放查询参数）
+- **握手鉴权**：校验 JWT、用户存在且未被封禁；无 token / 过期直接 401
+- **会话管理**：按 userId 维护连接集合，同一账号多端在线都会收到；心跳 `ping/pong`
+- **推送时机**：买家下单成功后，通过 `@TransactionalEventListener(AFTER_COMMIT)` 在事务提交后推送，订单回滚不会误报
+- **消息体**：
+  ```json
+  {"type":"NEW_ORDER","title":"青售提示","message":"有新订单啦，请及时确认！","orderId":20,"itemId":3,"itemTitle":"iPad 第 9 代 64G"}
   ```
-- **鍓嶇琛屼负**锛歚frontend-app` 鐧诲綍鍚庤嚜鍔ㄨ繛鎺ワ紝鏂嚎 5 绉掗噸杩烇紝閫€鍑虹櫥褰曡嚜鍔ㄥ叧闂紱鏀跺埌鍚?`ElNotification` 寮瑰嚭銆屾湁鏂拌鍗曞暒锛岃鍙婃椂纭锛併€嶃€?- **鐢熶骇閮ㄧ讲**锛歂ginx 闇€瑕佽浆鍙?WebSocket 鍗囩骇锛?  ```nginx
+- **前端行为**：`frontend-app` 登录后自动连接，断线 5 秒重连，退出登录自动关闭；收到后 `ElNotification` 弹出「有新订单啦，请及时确认！」。
+- **生产部署**：Nginx 需要转发 WebSocket 升级：
+  ```nginx
   location /ws {
       proxy_pass http://127.0.0.1:8080;
       proxy_http_version 1.1;
@@ -132,46 +176,66 @@ campus-market/
   }
   ```
 
-> 瀹炴祴锛歛lice01 鐧诲綍鍚庡缓绔嬭繛鎺ワ紙鍚庣鏃ュ織 `WebSocket 杩炴帴寤虹珛: userId=3`锛夛紝buyer01 涓嬪崟鍚庡墠绔敹鍒板苟寮瑰嚭銆岄潚鍞彁绀?/ 鏈夋柊璁㈠崟鍟︼紝璇峰強鏃剁‘璁わ紒銆嶃€?
-## 鎺ュ彛闄愭祦 @RateLimit
+> 实测：alice01 登录后建立连接（后端日志 `WebSocket 连接建立: userId=3`），buyer01 下单后前端收到并弹出「青售提示 / 有新订单啦，请及时确认！」。
 
-鑷畾涔夋敞瑙?+ AOP + Redis 瀹炵幇鍥哄畾绐楀彛闄愭祦锛岄槻姝㈠埛鎺ュ彛锛?
+## 接口限流 @RateLimit
+
+自定义注解 + AOP + Redis 实现固定窗口限流，防止刷接口：
+
 ```java
-@RateLimit(time = 60, count = 5)   // 60 绉掑唴鏈€澶?5 娆?@PostMapping
+@RateLimit(time = 60, count = 5)   // 60 秒内最多 5 次
+@PostMapping
 public Result<?> publish(...) { ... }
 ```
 
-- **瀹炵幇**锛歚RateLimitAspect` 鐢?Lua 鑴氭湰鎵ц `INCR` + 棣栨 `EXPIRE`锛堝師瀛愭搷浣滐級锛宬ey 涓?  `qingshou:rate:{Controller}.{method}:{鐢ㄦ埛ID 鎴?IP}`
-- **闄愭祦缁村害**锛氬凡鐧诲綍鎸?`userId`锛屾湭鐧诲綍鎸夊鎴风 IP锛堟敮鎸?`X-Forwarded-For`锛?- **瓒呴檺鍝嶅簲**锛欻TTP/涓氬姟鐮?429锛屾彁绀恒€屾墜閫熷お蹇暒锛岃绋嶅悗鍐嶈瘯銆?- **闄嶇骇**锛歊edis 寮傚父鏃舵斁琛岋紙fail-open锛夛紝閬垮厤缂撳瓨鏁呴殰鎷栧灝涓氬姟
-- **宸叉帴鍏?*锛歚POST /api/item`锛堝彂甯冨晢鍝侊級銆乣POST /api/user/send-code`锛堝彂閫侀獙璇佺爜锛夈€乣POST /api/report`锛堜妇鎶ワ級銆乣GET /api/item/{id}/contact`锛堣仈绯绘柟寮忥紝60 绉?3 娆★級
+- **实现**：`RateLimitAspect` 用 Lua 脚本执行 `INCR` + 首次 `EXPIRE`（原子操作），key 为
+  `qingshou:rate:{Controller}.{method}:{用户ID 或 IP}`
+- **限流维度**：已登录按 `userId`，未登录按客户端 IP（支持 `X-Forwarded-For`）
+- **超限响应**：HTTP/业务码 429，提示「手速太快啦，请稍后再试」
+- **降级**：Redis 异常时放行（fail-open），避免缓存故障拖垮业务
+- **已接入**：`POST /api/item`（发布商品）、`POST /api/user/send-code`（发送验证码）、`POST /api/report`（举报）、`GET /api/item/{id}/contact`（联系方式，60 秒 3 次）
 
-瀹炴祴锛氳繛缁 6 娆″彂甯?鍙戠爜鍧囪繑鍥?`code=429, message=鎵嬮€熷お蹇暒锛岃绋嶅悗鍐嶈瘯`锛汻edis 涓搴?key `count=6`銆乀TL 姝ｅ父閫掑噺銆?
-## 涓炬姤涓庡悗鍙板鐞?
-- 鍟嗗搧璇︽儏椤靛彸涓嬭鏈変綆璋冪殑銆屼妇鎶ヨ鍟嗗搧銆嶅叆鍙ｏ紝寮圭獥閫夋嫨鍘熷洜锛堣繚绂佸搧/璇堥獥/杈遍獋/渚垫潈/鍏朵粬锛? 琛ュ厖璇存槑
-- 鍚屼竴涓炬姤浜哄鍚屼竴瀵硅薄鍙兘鏈変竴鏉″緟澶勭悊涓炬姤
-- 绠＄悊鍚庡彴鏂板銆屼妇鎶ュ鐞嗐€峊ab锛氬睍绀哄晢鍝併€佷妇鎶ヤ汉銆佸師鍥犮€佹椂闂达紝鍙竴閿€屼笅鏋跺晢鍝併€嶆垨銆屽拷鐣ャ€?- 涓嬫灦浼氭妸鍟嗗搧缃负 `status=3`銆佸彇娑堢疆椤讹紝骞跺啓绠＄悊鍛樺璁℃棩蹇?- 琛ㄧ粨鏋勶細`report`锛堣縼绉?013锛夛紝瀛楁鍚?`item_id / target_user_id / reporter_id / reason / status / handler_id / handle_time`
+实测：连续第 6 次发布/发码均返回 `code=429, message=手速太快啦，请稍后再试`；Redis 中对应 key `count=6`、TTL 正常递减。
 
-瀹炴祴锛歜uyer01 涓炬姤 item5 鈫?绠＄悊鍚庡彴鍑虹幇 1 鏉″緟澶勭悊 鈫?涓嬫灦鍚?item5 `status=3`銆佷妇鎶?`status=1`銆佸璁℃棩蹇?`DELIST_ITEM`銆?
-## 璁㈠崟闃插崰鍗曚笌瓒呮椂
+## 举报与后台处理
 
-- 鍚屼竴涔板鏈€澶?**3 绗?*杩涜涓鍗曪紙鐘舵€?3/0/4锛夛紝绗?4 绗旂洿鎺?400
-- 涔板鍙富鍔ㄥ彇娑堛€屽緟鍗栧纭 / 寰呴潰浜ゃ€嶈鍗曪紝鍟嗗搧绔嬪嵆鎭㈠鍦ㄥ敭
-- 瀹氭椂浠诲姟姣?10 鍒嗛挓鎵弿锛?  - 鐘舵€?3 瓒呰繃 24 灏忔椂 鈫?鑷姩鍙栨秷
-  - 鐘舵€?0锛堝緟闈氦锛夎秴杩?**3 澶?*锛堟寜 `update_time`锛夆啋 鑷姩鍙栨秷骞舵仮澶嶅晢鍝佸湪鍞?- 杩愮淮鍙皟鐢?`POST /api/admin/maintenance/scan-timeout` 鎵嬪姩瑙﹀彂鎵弿
+- 商品详情页右下角有低调的「举报该商品」入口，弹窗选择原因（违禁品/诈骗/辱骂/侵权/其他）+ 补充说明
+- 同一举报人对同一对象只能有一条待处理举报
+- 管理后台「举报处理」Tab：展示商品、举报人、原因、时间，可一键「下架商品」或「忽略」
+- 下架会把商品置为 `status=3`、取消置顶，并写管理员审计日志
+- 表结构：`report`（迁移 013），字段含 `item_id / target_user_id / reporter_id / reason / status / handler_id / handle_time`
 
-瀹炴祴锛? 鍗曞悗绗?4 鍗曡繑鍥炪€屾渶澶?3 绗斻€嶏紱鍙栨秷鍚庡晢鍝佹仮澶嶄笖鍙啀涓嬪崟锛涙妸寰呴潰浜よ鍗?`update_time` 鏀规垚 4 澶╁墠鍚庤Е鍙戞壂鎻忥紝璁㈠崟鍙樺凡鍙栨秷銆佸晢鍝佹仮澶嶅湪鍞€?
-## 绠＄悊鍛樺璁℃棩蹇?
-- 琛?`admin_audit_log`锛堣縼绉?014锛夛細`admin_id / action / target_id / detail / create_time`
-- 宸茶褰曪細`TOP_ITEM`銆乣UNTOP_ITEM`銆乣BAN_USER`銆乣UNBAN_USER`銆乣DELIST_ITEM`銆乣DISMISS_REPORT`
-- 鏌ヨ鎺ュ彛锛歚GET /api/admin/audit-logs?limit=100`
+实测：buyer01 举报 item5 → 管理后台出现 1 条待处理 → 下架后 item5 `status=3`、举报 `status=1`、审计日志 `DELIST_ITEM`。
 
-## 鏁忔劅璇嶅缃?
-- 璇嶅簱鍦?`application.yml` 鐨?`app.sensitive-words`锛屾敼閰嶇疆鍗冲彲澧炲垹锛屾棤闇€鏀逛唬鐮?- 褰撳墠璇嶏細浠ｅ啓銆佽繚绂併€佽瘓楠椼€佹灙鏀€佹瘨鍝併€佸亣璇併€佸埛鍗曘€佷唬鑰?- 鍙戝竷/缂栬緫鍟嗗搧鏃跺懡涓洿鎺?400锛屾彁绀哄叿浣撴晱鎰熻瘝
+## 订单防占单与超时
 
-瀹炴祴锛氭爣棰樺惈銆屼唬鍐欍€嶃€屽埛鍗曘€嶅潎琚?400 鎷掔粷锛屾彁绀哄搴旀晱鎰熻瘝銆?
-## 绠＄悊鍚庡彴鏁版嵁鐪嬫澘
+- 同一买家最多 **3 笔**进行中订单（状态 3/0/4），第 4 笔直接 400
+- 买家可主动取消「待卖家确认 / 待面交」订单，商品立即恢复在售
+- 定时任务每 10 分钟扫描：
+  - 状态 3 超过 24 小时 → 自动取消
+  - 状态 0（待面交）超过 **3 天**（按 `update_time`）→ 自动取消并恢复商品在售
+- 运维可调用 `POST /api/admin/maintenance/scan-timeout` 手动触发扫描
 
-`GET /api/admin/stats`锛堜粎绠＄悊鍛橈級杩斿洖锛?
+实测：3 单后第 4 单返回「最多 3 笔」；取消后商品恢复且可再下单；把待面交订单 `update_time` 改成 4 天前后触发扫描，订单变已取消、商品恢复在售。
+
+## 管理员审计日志
+
+- 表 `admin_audit_log`（迁移 014）：`admin_id / action / target_id / detail / create_time`
+- 已记录：`TOP_ITEM`、`UNTOP_ITEM`、`BAN_USER`、`UNBAN_USER`、`DELIST_ITEM`、`DISMISS_REPORT`
+- 查询接口：`GET /api/admin/audit-logs?limit=100`
+
+## 敏感词外置
+
+- 词库在 `application.yml` 的 `app.sensitive-words`，改配置即可增删，无需改代码
+- 当前词：代写、违禁、诈骗、枪支、毒品、假证、刷单、代考
+- 发布/编辑商品时命中直接 400，提示具体敏感词
+
+实测：标题含「代写」「刷单」均被 400 拒绝，提示对应敏感词。
+
+## 管理后台数据看板
+
+`GET /api/admin/stats`（仅管理员）返回：
+
 ```json
 {
   "totalUsers": 4,
@@ -179,75 +243,106 @@ public Result<?> publish(...) { ... }
   "onSaleItems": 4,
   "todayPublishedItems": 1,
   "completedAmount": 50.00,
-  "trend": [{"date":"2026-11-08","label":"11-08","count":0}, "... 鍏?7 澶?]
+  "trend": [{"date":"2026-11-08","label":"11-08","count":0}, "... 共 7 天"]
 }
 ```
 
-- `completedAmount`锛氬凡瀹屾垚璁㈠崟锛坰tatus=1锛夊叧鑱?`item.price` 姹傚拰
-- `trend`锛氳繎 7 澶╂瘡澶╁彂甯冪殑鍟嗗搧鏁帮紙鍚粖澶╋紝鏃ユ湡鍗囧簭锛?- 鍓嶇 `admin` 椤甸潰椤堕儴鐢?5 寮犲崱鐗囧睍绀猴紝鏁板瓧閫氳繃 `AnimatedNumber` 缁勪欢鍋氭粴鍔ㄥ姩鐢伙紙requestAnimationFrame + easeOutCubic锛?- 鏁版嵁鐪嬫澘涓嬫柟鐢?ECharts 缁樺埗杩?7 澶╁彂甯冭秼鍔挎姌绾垮浘锛堟笎鍙橀潰绉€佸钩婊戞洸绾裤€佽嚜閫傚簲 resize锛?- Vite 鐗?`AdminView.vue` 涓庢棫鐗?`frontend/admin.html` 鍧囧凡鎺ュ叆
+- `completedAmount`：已完成订单（status=1）关联 `item.price` 求和
+- `trend`：近 7 天每天发布的商品数（含今天，日期升序）
+- 前端 `admin` 页面顶部用 5 张卡片展示，数字通过 `AnimatedNumber` 组件做滚动动画（requestAnimationFrame + easeOutCubic）
+- 数据看板下方用 ECharts 绘制近 7 天发布趋势折线图（渐变面积、平滑曲线、自适应 resize）
+- Vite `AdminView.vue` 已接入（旧版 admin.html 已删除）
 
-瀹炴祴锛氫粖鏃ュ彂甯?1 浠躲€佸畬鎴?1 绗?50 鍏冭鍗曞悗锛屾帴鍙ｈ繑鍥?`todayPublishedItems=1`銆乣completedAmount=50.00`锛岃秼鍔垮浘涓?11-12 涓?4銆?1-14 涓?1銆?
-## AI 鐢熸垚鍟嗗搧鏂囨
+实测：今日发布 1 件、完成 1 笔 50 元订单后，接口返回 `todayPublishedItems=1`、`completedAmount=50.00`，趋势图中 11-12 为 4、11-14 为 1。
 
-鍙戝竷椤碉紙Vite `PublishView.vue` 涓庢棫鐗?`publish.html`锛夊湪銆屽晢鍝佹弿杩般€嶅彸涓婅鎻愪緵 **鉁?AI甯垜鍐欐枃妗?* 鎸夐挳锛?
-1. 鍙栥€愬晢鍝佹爣棰樸€?銆愬垎绫汇€戞嫾鎴愬叧閿瘝锛堟渶澶?50 瀛楋級
-2. 璋冪敤 `POST /api/ai/generate-desc`锛堥渶鐧诲綍锛?3. 璇锋眰鏈熼棿鎸夐挳鏄剧ず銆屾鍦ㄧ敓鎴愪腑...銆嶅苟绂佺敤锛岄槻姝㈤噸澶嶇偣鍑?4. 杩斿洖鍚庤嚜鍔ㄥ～鍏ユ弿杩版锛屽苟鎻愮ず銆屽凡鏍规嵁鏍囬鍜屽垎绫荤敓鎴愭枃妗堛€?5. 鏈厤缃?`DEEPSEEK_API_KEY` 鏃跺悗绔繑鍥炪€屾ā鎷熸枃妗堛€嶏紝鍓嶇浼氭彁绀?mock 鐘舵€?6. 鏍囬涓虹┖鏃朵笉浼氬彂璇锋眰锛岀洿鎺ユ彁绀哄厛濉啓鏍囬
+## AI 生成商品文案
 
-![AI 鏂囨](<docs/screenshots/publish-ai.png>)
+发布页 `PublishView.vue` 在「商品描述」右上角提供 **✨ AI帮我写文案** 按钮：
 
-## 鍏抽敭閰嶇疆
+1. 取【商品标题】+【分类】拼成关键词（最多 50 字）
+2. 调用 `POST /api/ai/generate-desc`（需登录）
+3. 请求期间按钮显示「正在生成中...」并禁用，防止重复点击
+4. 返回后自动填入描述框，并提示「已根据标题和分类生成文案」
+5. 未配置 `DEEPSEEK_API_KEY` 时后端返回「模拟文案」，前端会提示 mock 状态
+6. 标题为空时不会发请求，直接提示先填写标题
 
-`backend/src/main/resources/application.yml`锛?
+![AI 文案](<docs/screenshots/publish-ai.png>)
+
+## 关键配置
+
+`backend/src/main/resources/application.yml`：
+
 ```yaml
 spring:
   mail:
     host: smtp.qq.com
     port: 465
-    username: ${MAIL_USERNAME:}      # 鍙戜欢閭
-    password: ${MAIL_AUTH_CODE:}     # QQ 閭 SMTP 鎺堟潈鐮侊紙涓嶆槸鐧诲綍瀵嗙爜锛?
-deepseek:
-  api-key: ${DEEPSEEK_API_KEY:}   # 浠庣幆澧冨彉閲忚鍙栵紝鍚姩鑴氭湰浼氬姞杞?.env.local
-topup:                            # 闃舵瀹氫环锛?澶?鍏?/ 7澶?鍏?/ 30澶?2鍏冿紙鍚庣璁＄畻锛屼笉淇′换鍓嶇閲戦锛?order:
-  timeout-hours: 24               # 寰呭崠瀹剁‘璁よ秴杩?24 灏忔椂鑷姩鍙栨秷
-  timeout-cron: "0 */10 * * * *"  # 姣?10 鍒嗛挓鎵弿涓€娆?```
+    username: ${MAIL_USERNAME:}      # 发件邮箱
+    password: ${MAIL_AUTH_CODE:}     # QQ 邮箱 SMTP 授权码（不是登录密码）
 
-`.env.local`锛堥」鐩牴鐩綍锛屾湰鏈虹鏈夛紝宸插湪 .gitignore锛夛細
+deepseek:
+  api-key: ${DEEPSEEK_API_KEY:}   # 从环境变量读取，启动脚本会加载 .env.local
+topup:                            # 阶梯定价：1天1元 / 7天5元 / 30天12元（后端计算，不信任前端金额）
+order:
+  timeout-hours: 24               # 待卖家确认超过 24 小时自动取消
+  timeout-cron: "0 */10 * * * *"  # 每 10 分钟扫描一次
+```
+
+`.env.local`（项目根目录，本机私有，已在 .gitignore）：
 ```
 DEEPSEEK_API_KEY=sk-xxxx
-MAIL_USERNAME=浣犵殑QQ閭@qq.com
-MAIL_AUTH_CODE=浣犵殑SMTP鎺堟潈鐮?```
+MAIL_USERNAME=你的QQ邮箱@qq.com
+MAIL_AUTH_CODE=你的SMTP授权码
+```
 
-## 鎺ュ彛閫熸煡
+## 接口速查
 
-| 妯″潡 | 鎺ュ彛 |
+| 模块 | 接口 |
 |---|---|
-| 鐢ㄦ埛 | `POST /api/user/send-code`锛堝鏍￠偖绠遍獙璇佺爜锛夈€乣POST /api/user/register`锛堥渶 `emailCode`锛夈€乣POST /api/user/login`銆乣POST /api/user/send-reset-code`锛堝繕璁板瘑鐮佸彂鐮侊級銆乣POST /api/user/reset-password`锛堥獙璇佺爜閲嶇疆锛夈€乣GET /api/user/me` |
-| 涓汉涓績 | `GET /api/user/me/items`銆乣GET /api/user/me/trades` |
-| 鍟嗗搧 | `POST /api/item`銆乣GET /api/item/list?page=1&size=10&keyword=&category=&campus=&sort=`锛堣繑鍥?records + total锛夈€乣GET /api/item/{id}`銆乣PUT /api/item/{id}`锛堝崠瀹剁紪杈戯級銆乣POST /api/item/{id}/offline`锛堝崠瀹朵笅鏋讹級 |
-| 璁㈠崟 | `POST /api/order`锛堟瘡涔板鏈€澶?3 绗旇繘琛屼腑锛夈€乣POST /api/order/{id}/seller-confirm`銆乣POST /api/order/{id}/complete`锛堜拱瀹剁‘璁ら潰浜わ級銆乣POST /api/order/{id}/seller-complete`锛堝崠瀹剁‘璁ゅ畬鎴愶級銆乣POST /api/order/{id}/buyer-cancel`銆乣POST /api/order/{id}/seller-reject`銆乣GET /api/order/buyer`銆乣GET /api/order/seller` |
-| 璇勪环 | `POST /api/review`锛堣鍗曞畬鎴愬悗涔板璇勪环锛夈€乣GET /api/review/user/{userId}`锛堝尶鍚嶅彲鐪嬶紝璇︽儏椤靛睍绀猴級銆乣GET /api/review/mine`锛堟垜鍙戝嚭鐨勮瘎浠凤級 |
-| 涓婁紶 | `POST /api/upload`锛坒orm-data锛屽瓧娈?`file`锛?|
+| 用户 | `POST /api/user/send-code`（学校邮箱验证码）、`POST /api/user/register`（需 `emailCode`）、`POST /api/user/login`、`POST /api/user/send-reset-code`（忘记密码发码）、`POST /api/user/reset-password`（验证码重置）、`GET /api/user/me` |
+| 个人中心 | `GET /api/user/me/items`、`GET /api/user/me/trades` |
+| 商品 | `POST /api/item`、`GET /api/item/list?page=1&size=10&keyword=&category=&campus=&sort=`（返回 records + total）、`GET /api/item/{id}`（联系方式仅掩码）、`GET /api/item/{id}/contact`（完整联系方式，60 秒 3 次）、`PUT /api/item/{id}`（卖家编辑）、`POST /api/item/{id}/offline`（卖家下架） |
+| 订单 | `POST /api/order`（每买家最多 3 笔进行中）、`POST /api/order/{id}/seller-confirm`、`POST /api/order/{id}/complete`（买家确认面交）、`POST /api/order/{id}/seller-complete`（卖家确认完成）、`POST /api/order/{id}/buyer-cancel`、`POST /api/order/{id}/seller-reject`、`GET /api/order/buyer`、`GET /api/order/seller` |
+| 评价 | `POST /api/review`（订单完成后买家评价）、`GET /api/review/user/{userId}`（匿名可看，详情页展示）、`GET /api/review/mine`（我发出的评价） |
+| 上传 | `POST /api/upload`（form-data，字段 `file`；每用户最多 50 张） |
 | AI | `POST /api/ai/generate-desc` |
-| 缃《鐢宠 | `POST /api/topup/apply`锛坆ody: `itemId` + `days`锛岄噾棰濆悗绔寜 1/7/30 澶╅樁姊绠楋級銆乣GET /api/topup/my`锛堝惈 `rejectReason`锛?|
-| 涓炬姤 | `POST /api/report`锛坆ody锛歚itemId` 鎴?`userId` + `reason`锛? 鍒嗛挓 5 娆★級 |
-| 绠＄悊 | `GET /api/admin/stats`锛堟暟鎹湅鏉匡級銆乣POST /api/admin/items/top`銆乣POST /api/admin/items/{id}/untop`銆乣POST /api/admin/users/{id}/ban`銆乣POST /api/admin/users/{id}/unban`銆乣GET /api/admin/topup/pending`銆乣POST /api/admin/topup/{id}/approve`銆乣POST /api/admin/topup/{id}/reject`锛坆ody 蹇呭～ `reason`锛夈€乣GET /api/admin/reports`銆乣POST /api/admin/reports/{id}/handle`锛坄delist` / `dismiss`锛夈€乣GET /api/admin/audit-logs`銆乣POST /api/admin/maintenance/scan-timeout` |
+| 举报 | `POST /api/report`（body：`itemId` 或 `userId` + `reason`，1 分钟 5 次） |
+| 置顶申请 | `POST /api/topup/apply`（body: `itemId` + `days`，金额后端按 1/7/30 天阶梯计算）、`GET /api/topup/my`（含 `rejectReason`） |
+| 管理 | `GET /api/admin/stats`、`POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`GET /api/admin/topup/pending`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject`、`GET /api/admin/reports`、`POST /api/admin/reports/{id}/handle`（`delist`/`dismiss`）、`GET /api/admin/audit-logs`、`POST /api/admin/maintenance/scan-timeout` |
 
-鎵€鏈夋帴鍙ｇ粺涓€杩斿洖 `{ "code": 200, "message": "...", "data": ... }`銆?
-## 鍓嶇椤甸潰
+所有接口统一返回 `{ "code": 200, "message": "...", "data": ... }`。
 
-| 椤甸潰 | 璇存槑 |
+## 前端页面（Vite 工程，端口 5174）
+
+| 路由 | 说明 |
 |---|---|
-| `login.html` | 鐧诲綍 / 娉ㄥ唽 Tab锛涙敞鍐屽惈瀛︽牎閭楠岃瘉鐮侊紙60 绉掑€掕鏃讹級锛?*蹇樿瀵嗙爜**寮圭獥锛堥偖绠遍獙璇佺爜閲嶇疆锛?0 绉掑€掕鏃讹級锛涙垚鍔熷悗 token 瀛?localStorage 骞惰烦杞富搴旂敤 |
-| `index.html` | 涓诲簲鐢紝鍝嶅簲寮忥細鎵嬫満搴曢儴瀵艰埅 + 鎮诞鍙戝竷锛屾闈㈠乏渚у浐瀹氳竟鏍忥紱涓婚〉鎼滅储 + 鏍″尯 Tab + **楠ㄦ灦灞?* + 鏃犻檺婊氬姩锛涘晢鍝佸崱鐗?馃敟 鎬ュ敭銆侌煆?楂樹俊瑾夛紱鎴戠殑锛堣祫鏂?/ 淇＄敤鍒?/ 鎴戝彂甯冪殑 **鍚紪杈戙€佷笅鏋?* / 鎴戜拱鍒扮殑 **鍚‘璁ゅ畬鎴愩€佽瘎浠峰崠瀹?* / 鎴戝崠鍑虹殑 **鍚悓鎰?鎷掔粷** / 閫€鍑虹櫥褰曪級锛?*鐐瑰嚮鍗＄墖璺宠浆 `detail.html?id=`** |
-| `publish.html` | 鍙戝竷闂茬疆锛氭爣棰樸€佹弿杩般€佷环鏍笺€佸垎绫汇€佹牎鍖恒€佽仈绯绘柟寮?+ 鍥剧墖涓婁紶锛堣皟 `/api/upload`锛屽洖鏄鹃瑙堬級锛涙彁浜ゅ甫 token 璋?`/api/item`锛屾垚鍔熷悗寮圭獥骞惰繑鍥為椤?|
-| `detail.html` | 鍟嗗搧璇︽儏锛氬ぇ鍥俱€佹爣棰樸€佷环鏍笺€佹弿杩般€佸崠瀹朵俊鎭紙馃弲 楂樹俊瑾夛級锛涘簳閮ㄣ€屾垜鎯宠銆嶆寜閽紝鐧诲綍鍚庡脊绐楀睍绀鸿仈绯绘柟寮忥紱澶嶅埗鎸夐挳鎸夊唴瀹瑰姩鎬佹樉绀恒€屽鍒禥Q鍙?/ 澶嶅埗寰俊鍙?/ 涓€閿鍒躲€嶏紱鏀寔寮圭獥鍐呫€岀洿鎺ヤ笅鍗曘€嶏紱**灞曠ず鍗栧璇勪环锛堝钩鍧囧垎 + 璇勪环鍒楄〃锛?* |
-| `admin.html` | 绠＄悊鍛樺悗鍙帮紙浠?admin01锛夛細Tab 鍒囨崲銆岀疆椤跺鏍搞€嶏紙el-table 寰呭鏍哥敵璇凤細鍟嗗搧/鐢宠浜?澶╂暟/閲戦/鏃堕棿锛岀‘璁ゆ敹娆惧苟缃《 / 鎷掔粷锛変笌銆岀敤鎴峰皝绂併€嶏紙el-table 鍏ㄩ儴鐢ㄦ埛锛氳鑹?淇＄敤鍒?鐘舵€?el-tag锛屽皝绂?/ 瑙ｅ皝锛?|
+| `/login` | 登录 / 注册 Tab；注册含学校邮箱验证码、协议勾选；忘记密码需用户名 + 邮箱 + 验证码 |
+| `/` | 首页：搜索、校区筛选、骨架屏、无限滚动；商品卡片急售/高信誉标签 |
+| `/messages` | 消息（模拟数据） |
+| `/profile` | 我的：资料 / 信用分 / 我发布的（编辑、下架）/ 我买到的（确认完成、取消订单、评价）/ 我卖出的（同意、拒绝、确认完成） |
+| `/publish` | 发布：图片上传、AI 写文案、敏感词校验 |
+| `/detail/:id` | 详情：图片、价格、卖家信息、掩码联系方式（复制时取完整值）、评价、下单、举报 |
+| `/admin` | 管理后台（仅 admin01）：数据看板 + 置顶审核 + 举报处理 + 用户封禁 |
 
-鍓嶇閫氳繃 `http://localhost:8080` 鐩磋繛鍚庣锛孋ORS 宸插叏寮€鏀俱€傚缓璁敤 `start-frontend.cmd` 璧烽潤鎬佹湇鍔★紙`python -m http.server 5173`锛夛紝涓嶈鐩存帴鍙屽嚮 HTML銆?
-## 瀛︽牎閭楠岃瘉鐮佹敞鍐?
-1. `POST /api/user/send-code`锛宐ody `{"email":"瀛﹀彿@xxx.edu.cn"}`锛?   - 浠呮帴鍙?`.edu.cn` 缁撳熬閭
-   - 鍚屼竴閭 1 鍒嗛挓鍐呭彧鑳藉彂涓€娆★紙Redis 闄愭祦锛岃秴闄?429锛?   - 6 浣嶉殢鏈洪獙璇佺爜锛孯edis 瀛?5 鍒嗛挓
-   - 鐢?QQ SMTP 鍙戦€侊紝鏍囬銆屻€愰潚鍞€戞偍鐨勬敞鍐岄獙璇佺爜銆嶏紝鍙戜欢浜恒€岄潚鍞畼鏂瑰洟闃熴€?2. `POST /api/user/register` 鏃跺甫涓?`schoolEmail` 鍜?`emailCode`锛?   - 鏍￠獙閫氳繃鍚庣珛鍗冲垹闄?Redis 涓殑楠岃瘉鐮侊紙涓€娆℃€т娇鐢級
-   - 閿欒鎴栬繃鏈熻繑鍥?400銆岄獙璇佺爜閿欒鎴栧凡杩囨湡銆?
-## 鍚庣画浼樺寲璺嚎鍥撅紙鎸変紭鍏堢骇锛?
-1. **瀹夊叏椋庢帶**锛欳ORS 鏀舵暃鍒版寮忓煙鍚嶏紱鎺ュ彛鎸夎鑹插仛鏂规硶绾ч壌鏉冿紙Spring Security + `@PreAuthorize`锛夛紱鐧诲綍/鍙戠爜鍔?IP 缁村害闄愭祦涓庡け璐ラ攣瀹氾紱鏁忔劅鎿嶄綔锛堝皝绂併€佸鏍革級鍐欏璁℃棩蹇椼€?2. **鎬ц兘涓庢灦鏋?*锛氬晢鍝佸垪琛ㄦ帴鍏?Elasticsearch 鎴?MySQL 鍏ㄦ枃绱㈠紩鏇夸唬 `LIKE %keyword%`锛涘浘鐗囪縼绉诲埌瀵硅薄瀛樺偍锛圤SS/MinIO锛? CDN锛涚儹鐐瑰垪琛ㄥ姞 Redis 缂撳瓨涓庣紦瀛樺嚮绌夸繚鎶わ紱璁㈠崟瓒呮椂娓呯悊鏀逛负寤惰繜闃熷垪锛堝 RocketMQ / Redis ZSet锛夈€?3. **浜ゆ槗涓庤祫閲戝畨鍏?*锛氱疆椤舵敹娆剧洰鍓嶆槸銆屾壂鐮?+ 浜哄伐瀹℃牳銆嶏紝涓婄嚎搴旀帴寰俊/鏀粯瀹濅紒涓氭敮浠樺苟鏍￠獙鍥炶皟绛惧悕锛涜鍗曞紩鍏ユ敮浠樻祦姘磋〃銆佸箓绛夐敭涓庡璐︿换鍔★紱骞冲彴鎶戒剑涓庣粨绠楄处鏈€?4. **鐢ㄦ埛浣撻獙**锛氬墠绔粠鍗曟枃浠舵媶鎴?Vite + Vue 宸ョ▼锛堢粍浠跺寲銆佽矾鐢便€佺姸鎬佺鐞嗭級锛涘晢鍝佽鎯呰ˉ SKU/澶氬浘杞挱锛涙秷鎭ā鍧楁帴瀹炴椂閫氱煡锛圵ebSocket锛夛紱楠ㄦ灦灞忎笌鍥剧墖鎳掑姞杞姐€?5. **杩愯惀涓庡晢涓氬彉鐜?*锛氬鍔犳洕鍏変綅/鎺ㄨ崘娴佺珵浠枫€佸崠瀹朵細鍛樺椁愩€佷氦鏄撴湇鍔¤垂锛涙暟鎹湅鏉匡紙DAU銆佹垚浜ら銆佺疆椤惰浆鍖栫巼锛夛紱浼樻儬鍒镐笌棣栧崟绔嬪噺銆?6. **鍙娴嬫€?*锛氭帴鍏?Prometheus + Grafana 鐩戞帶 QPS/寤惰繜/閿欒鐜囷紱缁撴瀯鍖栨棩蹇?+ TraceId锛涙參 SQL 鍛婅锛涘墠绔帴鍏?Sentry銆?7. **宸ョ▼璐ㄩ噺**锛氳ˉ JUnit + MockMvc 鎺ュ彛娴嬭瘯涓庡墠绔?E2E锛圥laywright锛夛紱CI 娴佹按绾匡紙鏋勫缓銆佹祴璇曘€侀暅鍍忔帹閫侊級锛涙暟鎹簱杩佺Щ宸ュ叿锛團lyway/Liquibase锛夋浛浠ｆ墜鍐?sql銆?8. **鍚堣涓庢不鐞?*锛氬疄鍚?瀛︾睄鏍￠獙銆佸唴瀹瑰鏍革紙鏁忔劅璇?+ 鍥剧墖閴撮粍锛夈€侀殣绉佹斂绛栦笌鏁版嵁鐣欏瓨绛栫暐銆佹湭鎴愬勾浜轰繚鎶ゃ€佹姇璇変妇鎶ヤ笌淇＄敤鎯╂垝瑙勫垯銆?
+前端通过 Vite 代理 `/api`、`/uploads`、`/ws` 到 `http://localhost:8080`；启动用 `start-frontend.cmd`。
+
+## 学校邮箱验证码注册
+
+1. `POST /api/user/send-code`，body `{"email":"学号@xxx.edu.cn"}`：
+   - 仅接受 `.edu.cn` 结尾邮箱
+   - 同一邮箱 1 分钟内只能发一次（Redis 限流，超限 429）
+   - 6 位随机验证码，Redis 存 5 分钟
+   - 由 QQ SMTP 发送，标题「【青售】您的注册验证码」，发件人「青售官方团队」
+2. `POST /api/user/register` 时带上 `schoolEmail` 和 `emailCode`：
+   - 校验通过后立即删除 Redis 中的验证码（一次性使用）
+   - 错误或过期返回 400「验证码错误或已过期」
+
+## 后续优化路线图（P1 / P2）
+
+1. **内容安全**：图片内容审核（色情/暴恐/二维码）、敏感词归一化（拼音/谐音/零宽字符）、高风险类目先审后发。
+2. **举报治理**：举报申诉、处理结果通知举报人、被举报 N 次自动隐藏、举报证据图片。
+3. **交易与资金**：置顶收款接微信/支付宝企业支付并校验回调签名；支付流水表、幂等键与对账任务；平台抽佣与结算账本。
+4. **性能与架构**：商品图片迁移 OSS + CDN；列表搜索视数据量接 MySQL 全文索引/Elasticsearch；订单超时改延迟队列。
+5. **可观测性**：Prometheus + Grafana 或云监控告警；结构化日志 + TraceId；慢 SQL 告警；前端 Sentry。
+6. **工程质量**：JUnit + MockMvc 接口测试、Playwright E2E、CI 流水线；Flyway/Liquibase 替代手写 sql。
+7. **合规与部署**：ICP/公安备案、HTTPS、安全组与备份、隐私政策法务终审、未成年人保护。
