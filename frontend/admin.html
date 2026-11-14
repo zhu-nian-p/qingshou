@@ -51,6 +51,22 @@
   .admin-name { font-size: 12px; color: var(--gray); }
 
   .wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 48px; }
+.dash { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.dash-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: 0 8px 22px rgba(13,148,136,.05); }
+.dash-label { font-size: 12px; color: #8aa; }
+.dash-num { margin-top: 8px; font-size: 26px; font-weight: 800; color: var(--teal-dark); line-height: 1.1; }
+.dash-num.accent { color: #0d9488; }
+.dash-num.amount { color: #d97706; font-size: 23px; }
+.chart-panel { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 30px rgba(13,148,136,.06); margin-bottom: 18px; padding: 16px 18px 8px; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; font-weight: 700; color: #164e45; }
+.chart-sub { font-size: 12px; font-weight: 400; color: #9bb5b0; }
+.chart { width: 100%; height: 240px; }
+@media (max-width: 640px) {
+  .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dash-card { padding: 12px; }
+  .dash-num { font-size: 21px; }
+  .dash-card:last-child { grid-column: span 2; }
+}
 
   /* 统计卡片 */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
@@ -113,20 +129,37 @@
   </header>
 
   <div class="wrap">
-    <!-- 统计 -->
-    <div class="stats">
-      <div class="stat warn">
-        <div class="num">{{ applies.length }}</div>
-        <div class="label">待审核置顶申请</div>
+    <!-- 数据看板 -->
+    <div class="dash">
+      <div class="dash-card">
+        <div class="dash-label">总用户数</div>
+        <div class="dash-num">{{ display.totalUsers }}</div>
       </div>
-      <div class="stat">
-        <div class="num">{{ users.length }}</div>
-        <div class="label">用户总数</div>
+      <div class="dash-card">
+        <div class="dash-label">今日新增用户</div>
+        <div class="dash-num accent">{{ display.todayNewUsers }}</div>
       </div>
-      <div class="stat danger">
-        <div class="num">{{ bannedCount }}</div>
-        <div class="label">已封禁用户</div>
+      <div class="dash-card">
+        <div class="dash-label">在售商品</div>
+        <div class="dash-num">{{ display.onSaleItems }}</div>
       </div>
+      <div class="dash-card">
+        <div class="dash-label">今日发布商品</div>
+        <div class="dash-num accent">{{ display.todayPublishedItems }}</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-label">已完成交易流水</div>
+        <div class="dash-num amount">¥{{ display.completedAmount }}</div>
+      </div>
+    </div>
+
+    <!-- 近 7 天发布趋势 -->
+    <div class="chart-panel">
+      <div class="chart-head">
+        <span>近 7 天发布商品趋势</span>
+        <span class="chart-sub">待审核置顶 {{ applies.length }} 条 · 已封禁 {{ bannedCount }} 人</span>
+      </div>
+      <div id="trendChart" class="chart"></div>
     </div>
 
     <!-- 主面板 -->
@@ -266,8 +299,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>
-  const { createApp, ref, computed, onMounted } = Vue;
+  const { createApp, ref, reactive, computed, onMounted } = Vue;
   const API_BASE = 'http://localhost:8080';
   const TOKEN_KEY = 'qingshou_token';
   const USER_KEY = 'qingshou_user';
@@ -286,6 +320,91 @@
       const loadingUsers = ref(false);
 
       const bannedCount = computed(() => users.value.filter(u => u.status === 1).length);
+
+      // ---- 数据看板 ----
+      const stats = ref({
+        totalUsers: 0, todayNewUsers: 0, onSaleItems: 0,
+        todayPublishedItems: 0, completedAmount: 0, trend: []
+      });
+      const display = reactive({
+        totalUsers: '0', todayNewUsers: '0', onSaleItems: '0',
+        todayPublishedItems: '0', completedAmount: '0.00'
+      });
+      let chart = null;
+
+      function animateNumber(key, target, decimals = 0) {
+        const from = Number(display[key]) || 0;
+        const start = performance.now();
+        const step = (now) => {
+          const progress = Math.min(1, (now - start) / 800);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const value = from + (target - from) * eased;
+          display[key] = decimals ? value.toFixed(decimals) : String(Math.round(value));
+          if (progress < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+
+      async function loadStats() {
+        try {
+          const res = await fetch(API_BASE + '/api/admin/stats', { headers: authHeaders() });
+          if (handleAuth(res)) return;
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '加载数据看板失败');
+          }
+          stats.value = json.data;
+          animateNumber('totalUsers', Number(stats.value.totalUsers));
+          animateNumber('todayNewUsers', Number(stats.value.todayNewUsers));
+          animateNumber('onSaleItems', Number(stats.value.onSaleItems));
+          animateNumber('todayPublishedItems', Number(stats.value.todayPublishedItems));
+          animateNumber('completedAmount', Number(stats.value.completedAmount), 2);
+          renderChart();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '加载数据看板失败');
+        }
+      }
+
+      function renderChart() {
+        const el = document.getElementById('trendChart');
+        if (!el || !window.echarts) return;
+        if (!chart) chart = echarts.init(el);
+        const trend = stats.value.trend || [];
+        chart.setOption({
+          tooltip: { trigger: 'axis' },
+          grid: { left: 44, right: 24, top: 28, bottom: 32 },
+          xAxis: {
+            type: 'category',
+            data: trend.map(t => t.label),
+            boundaryGap: false,
+            axisLine: { lineStyle: { color: '#cfe9e4' } },
+            axisLabel: { color: '#8aa' }
+          },
+          yAxis: {
+            type: 'value',
+            minInterval: 1,
+            splitLine: { lineStyle: { color: '#eef7f4' } },
+            axisLabel: { color: '#8aa' }
+          },
+          series: [{
+            name: '发布商品',
+            type: 'line',
+            smooth: true,
+            data: trend.map(t => t.count),
+            symbolSize: 7,
+            lineStyle: { width: 3, color: '#14b8a6' },
+            itemStyle: { color: '#14b8a6' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(20,184,166,.35)' },
+                { offset: 1, color: 'rgba(20,184,166,0)' }
+              ])
+            }
+          }]
+        });
+      }
+
+      window.addEventListener('resize', () => { if (chart) chart.resize(); });
 
       function authHeaders() {
         return { Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '') };
@@ -475,11 +594,11 @@
       onMounted(async () => {
         const ok = await loadMe();
         if (!ok) return;
-        await Promise.all([loadApplies(), loadUsers()]);
+        await Promise.all([loadApplies(), loadUsers(), loadStats()]);
       });
 
       return {
-        tab, me, applies, users, loadingApplies, loadingUsers, bannedCount,
+        tab, me, applies, users, loadingApplies, loadingUsers, bannedCount, display,
         goHome, logout, loadApplies, loadUsers,
         approve, reject, ban, unban, formatAmount, formatTime
       };

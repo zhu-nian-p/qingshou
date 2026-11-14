@@ -11,19 +11,37 @@
     </header>
 
     <div class="wrap">
-      <div class="stats">
-        <div class="stat warn">
-          <div class="num">{{ applies.length }}</div>
-          <div class="label">待审核置顶申请</div>
+      <!-- 数据看板 -->
+      <div class="dash" v-loading="loadingStats">
+        <div class="dash-card">
+          <div class="dash-label">总用户数</div>
+          <div class="dash-num"><AnimatedNumber :value="stats.totalUsers" /></div>
         </div>
-        <div class="stat">
-          <div class="num">{{ users.length }}</div>
-          <div class="label">用户总数</div>
+        <div class="dash-card">
+          <div class="dash-label">今日新增用户</div>
+          <div class="dash-num accent"><AnimatedNumber :value="stats.todayNewUsers" /></div>
         </div>
-        <div class="stat danger">
-          <div class="num">{{ bannedCount }}</div>
-          <div class="label">已封禁用户</div>
+        <div class="dash-card">
+          <div class="dash-label">在售商品</div>
+          <div class="dash-num"><AnimatedNumber :value="stats.onSaleItems" /></div>
         </div>
+        <div class="dash-card">
+          <div class="dash-label">今日发布商品</div>
+          <div class="dash-num accent"><AnimatedNumber :value="stats.todayPublishedItems" /></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">已完成交易流水</div>
+          <div class="dash-num amount"><AnimatedNumber :value="stats.completedAmount" :decimals="2" prefix="¥" /></div>
+        </div>
+      </div>
+
+      <!-- 近 7 天发布趋势 -->
+      <div class="chart-panel">
+        <div class="chart-head">
+          <span>近 7 天发布商品趋势</span>
+          <span class="chart-sub">待审核置顶 {{ applies.length }} 条 · 已封禁 {{ bannedCount }} 人</span>
+        </div>
+        <div ref="chartEl" class="chart"></div>
       </div>
 
       <div class="panel">
@@ -119,12 +137,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import * as echarts from 'echarts';
 import { api } from '@/api/http';
 import { useUserStore } from '@/stores/user';
 import { formatTime } from '@/utils/media';
+import AnimatedNumber from '@/components/AnimatedNumber.vue';
 
 const router = useRouter();
 const user = useUserStore();
@@ -135,7 +155,78 @@ const users = ref([]);
 const loadingApplies = ref(false);
 const loadingUsers = ref(false);
 
+const stats = ref({
+  totalUsers: 0,
+  todayNewUsers: 0,
+  onSaleItems: 0,
+  todayPublishedItems: 0,
+  completedAmount: 0,
+  trend: []
+});
+const loadingStats = ref(false);
+const chartEl = ref(null);
+let chartInstance = null;
+
 const bannedCount = computed(() => users.value.filter(u => u.status === 1).length);
+
+async function loadStats() {
+  loadingStats.value = true;
+  try {
+    stats.value = await api.get('/api/admin/stats');
+    await nextTick();
+    renderChart();
+  } catch (e) {
+    ElMessage.error(e.message || '加载数据看板失败');
+  } finally {
+    loadingStats.value = false;
+  }
+}
+
+function renderChart() {
+  if (!chartEl.value) return;
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartEl.value);
+  }
+  const trend = stats.value.trend || [];
+  const labels = trend.map(t => t.label);
+  const counts = trend.map(t => t.count);
+  chartInstance.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 44, right: 24, top: 28, bottom: 32 },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      boundaryGap: false,
+      axisLine: { lineStyle: { color: '#cfe9e4' } },
+      axisLabel: { color: '#8aa' }
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      splitLine: { lineStyle: { color: '#eef7f4' } },
+      axisLabel: { color: '#8aa' }
+    },
+    series: [{
+      name: '发布商品',
+      type: 'line',
+      smooth: true,
+      data: counts,
+      symbolSize: 7,
+      lineStyle: { width: 3, color: '#14b8a6' },
+      itemStyle: { color: '#14b8a6' },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(20,184,166,.35)' },
+          { offset: 1, color: 'rgba(20,184,166,0)' }
+        ])
+      }
+    }]
+  });
+}
+
+function onResize() {
+  if (chartInstance) chartInstance.resize();
+}
 
 function formatAmount(v) {
   const n = Number(v);
@@ -254,8 +345,18 @@ function logout() {
 }
 
 onMounted(() => {
+  loadStats();
   loadApplies();
   loadUsers();
+  window.addEventListener('resize', onResize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize);
+  if (chartInstance) {
+    chartInstance.dispose();
+    chartInstance = null;
+  }
 });
 </script>
 
@@ -271,12 +372,48 @@ onMounted(() => {
 .top-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .admin-name { font-size: 12px; color: var(--gray); }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 48px; }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
-.stat { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: 0 8px 22px rgba(13,148,136,.05); }
-.stat .num { font-size: 26px; font-weight: 800; color: var(--teal-dark); line-height: 1.1; }
-.stat .label { font-size: 12px; color: #8aa; margin-top: 4px; }
-.stat.warn .num { color: #d97706; }
-.stat.danger .num { color: #dc2626; }
+.dash {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.dash-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 8px 22px rgba(13,148,136,.05);
+}
+.dash-label { font-size: 12px; color: #8aa; }
+.dash-num {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--teal-dark);
+  line-height: 1.1;
+}
+.dash-num.accent { color: #0d9488; }
+.dash-num.amount { color: #d97706; font-size: 23px; }
+.chart-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(13,148,136,.06);
+  margin-bottom: 18px;
+  padding: 16px 18px 8px;
+}
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #164e45;
+}
+.chart-sub { font-size: 12px; font-weight: 400; color: #9bb5b0; }
+.chart { width: 100%; height: 240px; }
 .panel { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 10px 30px rgba(13,148,136,.06); overflow: hidden; }
 .panel-head { display: flex; align-items: center; gap: 12px; padding: 8px 18px 0; border-bottom: 1px solid var(--line); }
 .panel-head .hint { margin-left: auto; font-size: 12px; color: #9bb5b0; }
@@ -288,9 +425,10 @@ onMounted(() => {
 .muted { color: #8aa; font-size: 12px; }
 @media (max-width: 640px) {
   .wrap { padding: 12px 10px 32px; }
-  .stats { gap: 8px; }
-  .stat { padding: 12px; }
-  .stat .num { font-size: 21px; }
+  .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dash-card { padding: 12px; }
+  .dash-num { font-size: 21px; }
+  .dash-card:last-child { grid-column: span 2; }
   .panel-head { padding: 4px 12px 0; }
   .panel-body { padding: 12px; }
 }

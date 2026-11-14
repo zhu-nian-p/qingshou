@@ -3,7 +3,10 @@ package com.campus.market.order.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.campus.market.order.entity.Order;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
+import java.math.BigDecimal;
 
 /**
  * 订单 Mapper。
@@ -44,4 +47,11 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Update("UPDATE `order` SET status = 2 "
             + "WHERE id = #{orderId} AND status = 3 AND create_time < #{deadline}")
     int cancelIfTimeout(@Param("orderId") Long orderId, @Param("deadline") java.time.LocalDateTime deadline);
+
+    /**
+     * 已完成订单的总交易流水：关联 item 取商品成交价求和。
+     */
+    @Select("SELECT IFNULL(SUM(i.price), 0) FROM `order` o "
+            + "JOIN `item` i ON i.id = o.item_id WHERE o.status = 1")
+    BigDecimal sumCompletedAmount();
 }

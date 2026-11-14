@@ -1,8 +1,10 @@
 package com.campus.market.admin.controller;
 
+import com.campus.market.admin.dto.AdminStatsVO;
 import com.campus.market.admin.dto.AdminUserVO;
 import com.campus.market.admin.dto.TopItemRequest;
 import com.campus.market.admin.service.AdminService;
+import com.campus.market.admin.service.AdminStatsService;
 import com.campus.market.common.BusinessException;
 import com.campus.market.common.Result;
 import com.campus.market.item.dto.ItemListVO;
@@ -29,6 +31,13 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AdminStatsService adminStatsService;
+
+    /** 数据看板：用户/商品/交易流水/近 7 天发布趋势 */
+    @GetMapping("/stats")
+    public Result<AdminStatsVO> stats() {
+        return Result.success(adminStatsService.stats(currentUserId()));
+    }
 
     /** 置顶商品，默认 7 天 */
     @PostMapping("/items/{id}/top")

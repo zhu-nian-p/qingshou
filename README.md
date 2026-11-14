@@ -179,6 +179,29 @@ public Result<?> publish(...) { ... }
 
 实测：连续第 6 次发布/发码均返回 `code=429, message=手速太快啦，请稍后再试`；Redis 中对应 key `count=6`、TTL 正常递减。
 
+## 管理后台数据看板
+
+`GET /api/admin/stats`（仅管理员）返回：
+
+```json
+{
+  "totalUsers": 4,
+  "todayNewUsers": 0,
+  "onSaleItems": 4,
+  "todayPublishedItems": 1,
+  "completedAmount": 50.00,
+  "trend": [{"date":"2026-11-08","label":"11-08","count":0}, "... 共 7 天"]
+}
+```
+
+- `completedAmount`：已完成订单（status=1）关联 `item.price` 求和
+- `trend`：近 7 天每天发布的商品数（含今天，日期升序）
+- 前端 `admin` 页面顶部用 5 张卡片展示，数字通过 `AnimatedNumber` 组件做滚动动画（requestAnimationFrame + easeOutCubic）
+- 数据看板下方用 ECharts 绘制近 7 天发布趋势折线图（渐变面积、平滑曲线、自适应 resize）
+- Vite 版 `AdminView.vue` 与旧版 `frontend/admin.html` 均已接入
+
+实测：今日发布 1 件、完成 1 笔 50 元订单后，接口返回 `todayPublishedItems=1`、`completedAmount=50.00`，趋势图中 11-12 为 4、11-14 为 1。
+
 ## 关键配置
 
 `backend/src/main/resources/application.yml`：
@@ -218,7 +241,7 @@ MAIL_AUTH_CODE=你的SMTP授权码
 | 上传 | `POST /api/upload`（form-data，字段 `file`） |
 | AI | `POST /api/ai/generate-desc` |
 | 置顶申请 | `POST /api/topup/apply`（body: `itemId` + `days`，金额后端按 1/7/30 天阶梯计算）、`GET /api/topup/my`（含 `rejectReason`） |
-| 管理 | `POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`GET /api/admin/topup/pending`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject`（body 必填 `reason`） |
+| 管理 | `GET /api/admin/stats`（数据看板）、`POST /api/admin/items/top`、`POST /api/admin/items/{id}/untop`、`POST /api/admin/users/{id}/ban`、`POST /api/admin/users/{id}/unban`、`GET /api/admin/topup/pending`、`POST /api/admin/topup/{id}/approve`、`POST /api/admin/topup/{id}/reject`（body 必填 `reason`） |
 
 所有接口统一返回 `{ "code": 200, "message": "...", "data": ... }`。
 
