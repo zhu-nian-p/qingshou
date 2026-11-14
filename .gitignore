@@ -30,3 +30,7 @@ backup/
 # ---------- ç³»ç»Ÿæ‚é¡¹ ----------
 .DS_Store
 Thumbs.db
+
+# ---------- pnpm store / ÁÙÊ±ÎÄ¼ş ----------
+.pnpm-store/
+.tmp/
