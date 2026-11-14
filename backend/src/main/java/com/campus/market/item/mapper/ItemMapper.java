@@ -41,6 +41,12 @@ public interface ItemMapper extends BaseMapper<Item> {
     int offline(@Param("itemId") Long itemId);
 
     /**
+     * 管理员下架违规商品：任何状态都置为 3=已下架，同时取消置顶。
+     */
+    @Update("UPDATE `item` SET status = 3, is_top = 0, top_expire_time = NULL WHERE id = #{itemId}")
+    int adminDelist(@Param("itemId") Long itemId);
+
+    /**
      * 管理员置顶 / 取消置顶。
      *
      * @param isTop      1=置顶，0=取消

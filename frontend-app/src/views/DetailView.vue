@@ -46,6 +46,7 @@
         <div class="meta">
           <span>发布于 {{ formatTime(item.createTime) }}</span>
           <span v-if="item.topExpireTime">置顶至 {{ formatTime(item.topExpireTime) }}</span>
+          <span class="report-link" @click="openReport">举报该商品</span>
         </div>
       </div>
 
@@ -126,6 +127,28 @@
         <el-button type="primary" round :loading="submitting" @click="submitOrder">提交订单</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="reportVisible" title="举报商品" width="420px" align-center>
+      <div class="dialog-field">
+        <label>举报原因</label>
+        <el-select v-model="reportReason" placeholder="请选择举报原因" style="width:100%">
+          <el-option label="违禁品 / 违法内容" value="违禁品"></el-option>
+          <el-option label="诈骗 / 虚假信息" value="诈骗"></el-option>
+          <el-option label="辱骂 / 骚扰" value="辱骂骚扰"></el-option>
+          <el-option label="侵犯知识产权" value="侵权"></el-option>
+          <el-option label="其他" value="其他"></el-option>
+        </el-select>
+      </div>
+      <div class="dialog-field">
+        <label>补充说明（可选）</label>
+        <el-input v-model="reportDetail" type="textarea" :rows="3" maxlength="300" show-word-limit
+                  placeholder="请描述具体问题，方便管理员核实"></el-input>
+      </div>
+      <template #footer>
+        <el-button round @click="reportVisible = false">取消</el-button>
+        <el-button type="danger" round :loading="reportSubmitting" @click="submitReport">提交举报</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -153,6 +176,11 @@ const tradeLocation = ref('一食堂门口');
 const submitting = ref(false);
 const reviews = ref([]);
 const reviewLoading = ref(false);
+
+const reportVisible = ref(false);
+const reportReason = ref('违禁品');
+const reportDetail = ref('');
+const reportSubmitting = ref(false);
 
 const sellerAvatar = computed(() => String(item.value.sellerName || '青').slice(0, 1).toUpperCase());
 const statusText = computed(() => ({ 0: '在售', 1: '已被预订', 2: '已售出', 3: '已下架' }[item.value.status] || ''));
@@ -232,6 +260,33 @@ async function wantIt() {
   }
 }
 
+function openReport() {
+  if (!user.isLoggedIn) {
+    promptLogin();
+    return;
+  }
+  reportReason.value = '违禁品';
+  reportDetail.value = '';
+  reportVisible.value = true;
+}
+
+async function submitReport() {
+  if (!reportReason.value) return ElMessage.warning('请选择举报原因');
+  reportSubmitting.value = true;
+  try {
+    const reason = reportDetail.value.trim()
+      ? reportReason.value + '：' + reportDetail.value.trim()
+      : reportReason.value;
+    await api.post('/api/report', { itemId, reason });
+    ElMessage.success('举报已提交，管理员会尽快处理');
+    reportVisible.value = false;
+  } catch (e) {
+    ElMessage.error(e.message || '举报失败，请稍后再试');
+  } finally {
+    reportSubmitting.value = false;
+  }
+}
+
 async function copyContact() {
   try {
     // 完整联系方式只在点击复制时获取，且后端限制 1 分钟 3 次
@@ -295,6 +350,10 @@ async function submitOrder() {
 .section-label { font-size: 13px; font-weight: 700; color: #36635c; margin: 4px 0 8px; }
 .desc { font-size: 14px; line-height: 1.8; color: #46655f; white-space: pre-wrap; background: #f8fffd; border-radius: 12px; padding: 12px 14px; min-height: 60px; }
 .meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #9bb5b0; margin-top: 12px; }
+.report-link { margin-left: auto; color: #b7c9c5; cursor: pointer; text-decoration: underline; }
+.report-link:hover { color: #dc2626; }
+.dialog-field { margin-bottom: 14px; }
+.dialog-field > label { display: block; font-size: 12px; font-weight: 600; color: #36635c; margin-bottom: 6px; }
 .seller { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; margin-top: 14px; }
 .seller-info { min-width: 0; flex: 1; }
 .seller-name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }

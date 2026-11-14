@@ -32,6 +32,7 @@ public class AdminService {
     private final UserMapper userMapper;
     private final ItemMapper itemMapper;
     private final ItemListCacheService cacheService;
+    private final AdminAuditService auditService;
 
     /** 置顶商品，days 天后自动过期 */
     public ItemListVO topItem(Long adminId, Long itemId, int days) {
@@ -44,6 +45,7 @@ public class AdminService {
         LocalDateTime expireTime = LocalDateTime.now().plusDays(validDays);
         itemMapper.updateTop(itemId, 1, expireTime);
         cacheService.evictAll();
+        auditService.log(adminId, "TOP_ITEM", itemId, "置顶 " + validDays + " 天");
         return toItemVO(itemMapper.selectById(itemId));
     }
 
@@ -56,6 +58,7 @@ public class AdminService {
         }
         itemMapper.updateTop(itemId, 0, null);
         cacheService.evictAll();
+        auditService.log(adminId, "UNTOP_ITEM", itemId, "取消置顶");
         return toItemVO(itemMapper.selectById(itemId));
     }
 
@@ -78,7 +81,9 @@ public class AdminService {
         }
         if (target.getRole() != null && target.getRole() == ROLE_ADMIN) {
             throw BusinessException.badRequest("不能封禁管理员账号");
-        }        userMapper.updateStatus(userId, STATUS_BANNED);
+        }
+        userMapper.updateStatus(userId, STATUS_BANNED);
+        auditService.log(adminId, "BAN_USER", userId, "封禁用户");
         return toUserVO(userMapper.selectById(userId));
     }
 
@@ -87,6 +92,7 @@ public class AdminService {
         requireAdmin(adminId);
         User target = requireTarget(userId);
         userMapper.updateStatus(userId, STATUS_NORMAL);
+        auditService.log(adminId, "UNBAN_USER", userId, "解封用户");
         return toUserVO(userMapper.selectById(userId));
     }
 

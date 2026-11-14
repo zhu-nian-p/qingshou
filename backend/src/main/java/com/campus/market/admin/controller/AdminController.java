@@ -3,11 +3,14 @@ package com.campus.market.admin.controller;
 import com.campus.market.admin.dto.AdminStatsVO;
 import com.campus.market.admin.dto.AdminUserVO;
 import com.campus.market.admin.dto.TopItemRequest;
+import com.campus.market.admin.entity.AdminAuditLog;
+import com.campus.market.admin.service.AdminAuditService;
 import com.campus.market.admin.service.AdminService;
 import com.campus.market.admin.service.AdminStatsService;
 import com.campus.market.common.BusinessException;
 import com.campus.market.common.Result;
 import com.campus.market.item.dto.ItemListVO;
+import com.campus.market.order.task.OrderTimeoutTask;
 import com.campus.market.security.UserContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,23 @@ public class AdminController {
 
     private final AdminService adminService;
     private final AdminStatsService adminStatsService;
+    private final AdminAuditService adminAuditService;
+    private final OrderTimeoutTask orderTimeoutTask;
+
+    /** 手动触发一次超时订单扫描（运维排查用） */
+    @PostMapping("/maintenance/scan-timeout")
+    public Result<Void> scanTimeoutOrders() {
+        adminService.requireAdmin(currentUserId());
+        orderTimeoutTask.cancelTimeoutOrders();
+        orderTimeoutTask.cancelMeetTimeoutOrders();
+        return Result.success("青售提示：已触发超时订单扫描");
+    }
+
+    /** 最近的管理员操作审计日志 */
+    @GetMapping("/audit-logs")
+    public Result<List<AdminAuditLog>> auditLogs(@RequestParam(defaultValue = "100") int limit) {
+        return Result.success(adminAuditService.recent(limit));
+    }
 
     /** 数据看板：用户/商品/交易流水/近 7 天发布趋势 */
     @GetMapping("/stats")

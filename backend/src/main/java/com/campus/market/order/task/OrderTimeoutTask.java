@@ -38,6 +38,10 @@ public class OrderTimeoutTask {
     @Value("${order.timeout-hours:24}")
     private long timeoutHours;
 
+    /** 待面交超过多少天自动取消，默认 3 */
+    @Value("${order.meet-timeout-days:3}")
+    private long meetTimeoutDays;
+
     @Scheduled(cron = "${order.timeout-cron:0 0/10 * * * *}")
     public void cancelTimeoutOrders() {
         LocalDateTime deadline = LocalDateTime.now().minusHours(timeoutHours);
@@ -64,5 +68,36 @@ public class OrderTimeoutTask {
             }
         }
         log.info("超时订单扫描完成：候选 {} 笔，实际取消 {} 笔", candidates.size(), canceled);
+    }
+
+    /**
+     * 待面交超过 3 天自动取消，防止买家确认后长期失联占住商品。
+     * 用 update_time 判断「进入待面交状态的时间」。
+     */
+    @Scheduled(cron = "${order.timeout-cron:0 0/10 * * * *}")
+    public void cancelMeetTimeoutOrders() {
+        LocalDateTime deadline = LocalDateTime.now().minusDays(meetTimeoutDays);
+
+        List<Order> candidates = orderMapper.selectList(new LambdaQueryWrapper<Order>()
+                .eq(Order::getStatus, OrderService.STATUS_WAIT_MEET)
+                .lt(Order::getUpdateTime, deadline));
+
+        if (candidates.isEmpty()) {
+            log.debug("待面交超时扫描：没有需要取消的订单（截止时间 {}）", deadline);
+            return;
+        }
+
+        int canceled = 0;
+        for (Order order : candidates) {
+            try {
+                if (orderService.cancelMeetTimeout(order, deadline)) {
+                    canceled++;
+                    log.info("待面交超时订单已自动取消：orderId={}, itemId={}", order.getId(), order.getItemId());
+                }
+            } catch (Exception ex) {
+                log.error("待面交超时取消失败：orderId={}", order.getId(), ex);
+            }
+        }
+        log.info("待面交超时扫描完成：候选 {} 笔，实际取消 {} 笔", candidates.size(), canceled);
     }
 }

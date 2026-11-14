@@ -53,6 +53,13 @@ public class OrderController {
                 orderService.sellerComplete(id, currentUserId()));
     }
 
+    /** 买家主动取消订单（3 或 0 -> 2），商品恢复在售 */
+    @PostMapping("/{id}/buyer-cancel")
+    public Result<OrderVO> buyerCancel(@PathVariable Long id) {
+        return Result.success("青售提示：订单已取消，商品已恢复在售",
+                orderService.buyerCancel(id, currentUserId()));
+    }
+
     /** 卖家拒绝接单：订单取消（2），商品恢复在售（0） */
     @PostMapping("/{id}/seller-reject")
     public Result<OrderVO> sellerReject(@PathVariable Long id) {

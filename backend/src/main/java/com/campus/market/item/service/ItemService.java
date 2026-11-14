@@ -39,6 +39,7 @@ public class ItemService {
     private final ItemMapper itemMapper;
     private final UserMapper userMapper;
     private final ItemListCacheService cacheService;
+    private final SensitiveWordFilter sensitiveWordFilter;
 
     /**
      * 发布商品。sellerId 只从 JWT 上下文取，前端传了也不认。
@@ -50,7 +51,7 @@ public class ItemService {
         }
 
         // 标题、描述都要过敏感词
-        SensitiveWordFilter.check(request.getTitle(), request.getDescription());
+        sensitiveWordFilter.check(request.getTitle(), request.getDescription());
 
         Item item = new Item();
         item.setSellerId(sellerId);
@@ -164,7 +165,7 @@ public class ItemService {
             throw BusinessException.badRequest("只有「在售」商品可以编辑");
         }
 
-        SensitiveWordFilter.check(request.getTitle(), request.getDescription());
+        sensitiveWordFilter.check(request.getTitle(), request.getDescription());
 
         item.setTitle(request.getTitle().trim());
         item.setDescription(trimToNull(request.getDescription()));

@@ -73,7 +73,8 @@
           </div>
           <div class="order-actions" v-if="canAct(o)">
             <template v-if="segment === 'bought'">
-              <el-button size="small" type="primary" round @click="completeTrade(o)">确认完成交易</el-button>
+              <el-button v-if="o.status === 0" size="small" type="primary" round @click="completeTrade(o)">确认完成交易</el-button>
+              <el-button size="small" round @click="cancelOrder(o)">取消订单</el-button>
             </template>
             <template v-else-if="o.status === 3">
               <el-button size="small" type="primary" round @click="confirmTrade(o)">同意面交</el-button>
@@ -162,7 +163,7 @@ function orderStatusText(o) {
   return o.statusText || '';
 }
 function canAct(o) {
-  if (segment.value === 'bought') return o.status === 0;
+  if (segment.value === 'bought') return o.status === 0 || o.status === 3;
   if (segment.value === 'sold') return o.status === 3 || o.status === 4;
   return false;
 }
@@ -255,6 +256,14 @@ async function postOrderAction(order, action, successMsg) {
   } catch (e) {
     ElMessage.error(e.message || '操作失败');
   }
+}
+
+function cancelOrder(o) {
+  ElMessageBox.confirm('确定取消这笔订单吗？取消后商品会恢复在售。', '取消订单', {
+    confirmButtonText: '确认取消',
+    cancelButtonText: '再想想',
+    type: 'warning'
+  }).then(() => postOrderAction(o, 'buyer-cancel', '订单已取消，商品已恢复在售')).catch(() => {});
 }
 
 function confirmTrade(o) {

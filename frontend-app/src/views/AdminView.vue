@@ -39,7 +39,7 @@
       <div class="chart-panel">
         <div class="chart-head">
           <span>近 7 天发布商品趋势</span>
-          <span class="chart-sub">待审核置顶 {{ applies.length }} 条 · 已封禁 {{ bannedCount }} 人</span>
+          <span class="chart-sub">待审核置顶 {{ applies.length }} 条 · 待处理举报 {{ reports.length }} 条 · 已封禁 {{ bannedCount }} 人</span>
         </div>
         <div ref="chartEl" class="chart"></div>
       </div>
@@ -48,6 +48,7 @@
         <div class="panel-head">
           <el-tabs v-model="tab">
             <el-tab-pane label="置顶审核" name="topup"></el-tab-pane>
+            <el-tab-pane label="举报处理" name="reports"></el-tab-pane>
             <el-tab-pane label="用户封禁" name="users"></el-tab-pane>
           </el-tabs>
           <span class="hint">仅管理员可见 · 所有操作均会立即生效</span>
@@ -92,6 +93,34 @@
                 </template>
               </el-table-column>
             </el-table>
+          </div>
+
+          <div v-show="tab === 'reports'">
+            <div class="toolbar">
+              <span class="title">待处理举报</span>
+              <span class="spacer"></span>
+              <el-button size="small" round :loading="loadingReports" @click="loadReports">刷新</el-button>
+            </div>
+            <el-skeleton v-if="loadingReports" :rows="5" animated />
+            <el-table v-else :data="reports" empty-text="暂无待处理举报" style="width:100%">
+              <el-table-column label="举报商品" min-width="180">
+                <template #default="{ row }">
+                  <div>{{ row.itemTitle || ('商品 #' + row.itemId) }}</div>
+                  <div class="muted">举报人：{{ row.reporterName || ('用户 #' + row.reporterId) }}</div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="reason" label="举报原因" min-width="220" show-overflow-tooltip></el-table-column>
+              <el-table-column label="举报时间" width="170">
+                <template #default="{ row }"><span class="muted">{{ formatTime(row.createTime) }}</span></template>
+              </el-table-column>
+              <el-table-column label="操作" width="200" align="right" fixed="right">
+                <template #default="{ row }">
+                  <el-button type="danger" size="small" round @click="handleReport(row, 'delist')">下架商品</el-button>
+                  <el-button size="small" round @click="handleReport(row, 'dismiss')">忽略</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div class="muted" style="margin-top:10px">「下架商品」会把商品置为已下架并取消置顶，同时写入管理员审计日志。</div>
           </div>
 
           <div v-show="tab === 'users'">
@@ -153,8 +182,10 @@ const user = useUserStore();
 
 const tab = ref('topup');
 const applies = ref([]);
+const reports = ref([]);
 const users = ref([]);
 const loadingApplies = ref(false);
+const loadingReports = ref(false);
 const loadingUsers = ref(false);
 
 const stats = ref({
@@ -246,8 +277,42 @@ async function loadApplies() {
   }
 }
 
-async function loadUsers() {
-  loadingUsers.value = true;
+async function loadReports() {
+  loadingReports.value = true;
+  try {
+    reports.value = await api.get('/api/admin/reports');
+  } catch (e) {
+    ElMessage.error(e.message || '加载举报列表失败');
+  } finally {
+    loadingReports.value = false;
+  }
+}
+
+async function handleReport(row, action) {
+  if (action === 'delist') {
+    try {
+      await ElMessageBox.confirm(
+        `确认下架「${row.itemTitle || '该商品'}」？该商品将变为已下架并取消置顶。`,
+        '下架违规商品',
+        { confirmButtonText: '确认下架', cancelButtonText: '取消', type: 'warning' }
+      );
+    } catch (e) {
+      return;
+    }
+  }
+  try {
+    await api.post('/api/admin/reports/' + row.id + '/handle', { action });
+    ElMessage.success(action === 'delist' ? '已下架违规商品' : '已忽略该举报');
+    await loadReports();
+    if (action === 'delist') {
+      await Promise.all([loadApplies(), loadUsers(), loadStats()]);
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '处理失败');
+  }
+}
+
+async function loadUsers() {  loadingUsers.value = true;
   try {
     users.value = await api.get('/api/admin/users');
   } catch (e) {
@@ -349,6 +414,7 @@ function logout() {
 onMounted(() => {
   loadStats();
   loadApplies();
+  loadReports();
   loadUsers();
   window.addEventListener('resize', onResize);
 });

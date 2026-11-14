@@ -42,6 +42,9 @@ public class OrderService {
 
     private static final int ITEM_ON_SALE = 0;
 
+    /** 同一买家最多同时进行中的订单数（待卖家确认/待面交/待卖家确认完成） */
+    private static final int MAX_ACTIVE_ORDERS = 3;
+
     private final OrderMapper orderMapper;
     private final ItemMapper itemMapper;
     private final UserMapper userMapper;
@@ -65,6 +68,14 @@ public class OrderService {
         }
         if (item.getSellerId().equals(buyerId)) {
             throw BusinessException.badRequest("不能购买自己发布的商品");
+        }
+
+        // 防恶意占单：同时进行中的订单最多 3 笔
+        long activeOrders = orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .eq(Order::getBuyerId, buyerId)
+                .in(Order::getStatus, STATUS_PENDING_SELLER, STATUS_WAIT_MEET, STATUS_PENDING_SELLER_CONFIRM));
+        if (activeOrders >= MAX_ACTIVE_ORDERS) {
+            throw BusinessException.badRequest("你同时进行中的订单最多 3 笔，请先完成或取消一笔再下单");
         }
 
         int reserved = itemMapper.reserve(item.getId());
@@ -191,6 +202,48 @@ public class OrderService {
         cacheService.evictAll();
 
         return toVO(orderMapper.selectById(orderId), itemMapper.selectById(order.getItemId()));
+    }
+
+    /**
+     * 买家主动取消：3 或 0 -> 2，并把商品恢复在售。
+     */
+    @Transactional
+    public OrderVO buyerCancel(Long orderId, Long currentUserId) {
+        Order order = getExistingOrder(orderId);
+        if (!order.getBuyerId().equals(currentUserId)) {
+            throw BusinessException.forbidden("只有买家本人可以取消订单");
+        }
+        if (order.getStatus() != STATUS_PENDING_SELLER && order.getStatus() != STATUS_WAIT_MEET) {
+            throw BusinessException.badRequest("当前状态不能取消（已确认完成或已取消）");
+        }
+
+        int updated = orderMapper.cancelByBuyer(orderId, currentUserId);
+        if (updated != 1) {
+            throw BusinessException.badRequest("订单状态已变化，请刷新后重试");
+        }
+        int released = itemMapper.release(order.getItemId());
+        if (released != 1) {
+            log.warn("取消订单 {} 成功，但商品 {} 未能恢复在售", orderId, order.getItemId());
+        }
+        cacheService.evictAll();
+        return toVO(orderMapper.selectById(orderId), itemMapper.selectById(order.getItemId()));
+    }
+
+    /**
+     * 定时任务调用：待面交超过 N 天自动取消，并恢复商品在售。
+     */
+    @Transactional
+    public boolean cancelMeetTimeout(Order order, LocalDateTime deadline) {
+        int updated = orderMapper.cancelMeetIfTimeout(order.getId(), deadline);
+        if (updated != 1) {
+            return false;
+        }
+        int released = itemMapper.release(order.getItemId());
+        if (released != 1) {
+            log.warn("待面交超时订单 {} 已取消，但商品 {} 未能恢复在售", order.getId(), order.getItemId());
+        }
+        cacheService.evictAll();
+        return true;
     }
 
     /**

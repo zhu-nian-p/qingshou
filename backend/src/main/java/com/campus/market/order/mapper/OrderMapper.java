@@ -56,6 +56,21 @@ public interface OrderMapper extends BaseMapper<Order> {
     int cancelIfTimeout(@Param("orderId") Long orderId, @Param("deadline") java.time.LocalDateTime deadline);
 
     /**
+     * 买家主动取消：待卖家确认(3) 或 待面交(0) -> 2=已取消。
+     */
+    @Update("UPDATE `order` SET status = 2 "
+            + "WHERE id = #{orderId} AND buyer_id = #{buyerId} AND status IN (3, 0)")
+    int cancelByBuyer(@Param("orderId") Long orderId, @Param("buyerId") Long buyerId);
+
+    /**
+     * 待面交超过 N 天自动取消：仅处理 status=0 且最后更新时间早于截止时间。
+     */
+    @Update("UPDATE `order` SET status = 2 "
+            + "WHERE id = #{orderId} AND status = 0 AND update_time < #{deadline}")
+    int cancelMeetIfTimeout(@Param("orderId") Long orderId,
+                            @Param("deadline") java.time.LocalDateTime deadline);
+
+    /**
      * 已完成订单的总交易流水：关联 item 取商品成交价求和。
      */
     @Select("SELECT IFNULL(SUM(i.price), 0) FROM `order` o "
