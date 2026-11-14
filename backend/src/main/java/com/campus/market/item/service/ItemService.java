@@ -7,6 +7,7 @@ import com.campus.market.common.PageResult;
 import com.campus.market.common.SensitiveWordFilter;
 import com.campus.market.item.dto.ItemDetailVO;
 import com.campus.market.item.dto.ItemListVO;
+import com.campus.market.item.dto.ItemUpdateRequest;
 import com.campus.market.item.dto.PublishItemRequest;
 import com.campus.market.item.dto.PublishItemResponse;
 import com.campus.market.item.entity.Item;
@@ -122,6 +123,64 @@ public class ItemService {
 
         Page<Item> result = itemMapper.selectPage(new Page<>(current, pageSize), query);
         return PageResult.of(result, toListVOList(result.getRecords()));
+    }
+
+    /**
+     * 编辑商品：只有卖家本人、且商品处于「在售」状态才能改。
+     */
+    public ItemDetailVO update(Long id, ItemUpdateRequest request) {
+        Long userId = UserContext.get();
+        if (userId == null) {
+            throw BusinessException.unauthorized("未登录或登录已过期");
+        }
+        Item item = itemMapper.selectById(id);
+        if (item == null) {
+            throw BusinessException.notFound("商品不存在");
+        }
+        if (!item.getSellerId().equals(userId)) {
+            throw BusinessException.forbidden("只能编辑自己发布的商品");
+        }
+        if (item.getStatus() != STATUS_ON_SALE) {
+            throw BusinessException.badRequest("只有「在售」商品可以编辑");
+        }
+
+        SensitiveWordFilter.check(request.getTitle(), request.getDescription());
+
+        item.setTitle(request.getTitle().trim());
+        item.setDescription(trimToNull(request.getDescription()));
+        item.setPrice(request.getPrice());
+        item.setCategory(request.getCategory().trim());
+        item.setCampus(StringUtils.hasText(request.getCampus()) ? request.getCampus().trim() : DEFAULT_CAMPUS);
+        item.setContactInfo(trimToNull(request.getContactInfo()));
+        item.setImageUrl(trimToNull(request.getImageUrl()));
+        itemMapper.updateById(item);
+
+        return detail(id);
+    }
+
+    /**
+     * 卖家下架商品：0=在售 -> 3=已下架，已预订/已售出不允许下架。
+     */
+    public ItemDetailVO offline(Long id) {
+        Long userId = UserContext.get();
+        if (userId == null) {
+            throw BusinessException.unauthorized("未登录或登录已过期");
+        }
+        Item item = itemMapper.selectById(id);
+        if (item == null) {
+            throw BusinessException.notFound("商品不存在");
+        }
+        if (!item.getSellerId().equals(userId)) {
+            throw BusinessException.forbidden("只能下架自己发布的商品");
+        }
+        if (item.getStatus() != STATUS_ON_SALE) {
+            throw BusinessException.badRequest("只有「在售」商品可以下架");
+        }
+        int updated = itemMapper.offline(id);
+        if (updated != 1) {
+            throw BusinessException.badRequest("商品状态已变化，请刷新后重试");
+        }
+        return detail(id);
     }
 
     /**

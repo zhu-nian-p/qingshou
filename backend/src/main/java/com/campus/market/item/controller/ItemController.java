@@ -4,6 +4,7 @@ import com.campus.market.common.PageResult;
 import com.campus.market.common.Result;
 import com.campus.market.item.dto.ItemDetailVO;
 import com.campus.market.item.dto.ItemListVO;
+import com.campus.market.item.dto.ItemUpdateRequest;
 import com.campus.market.item.dto.PublishItemRequest;
 import com.campus.market.item.dto.PublishItemResponse;
 import com.campus.market.item.service.ItemService;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,6 +50,19 @@ public class ItemController {
                                                @RequestParam(defaultValue = "1") long page,
                                                @RequestParam(defaultValue = "10") long size) {
         return Result.success(itemService.list(keyword, category, campus, sort, page, size));
+    }
+
+    /** 编辑在售商品（卖家本人） */
+    @PutMapping("/{id}")
+    public Result<ItemDetailVO> update(@PathVariable Long id,
+                                       @Valid @RequestBody ItemUpdateRequest request) {
+        return Result.success("青售提示：修改成功", itemService.update(id, request));
+    }
+
+    /** 下架在售商品（卖家本人） */
+    @PostMapping("/{id}/offline")
+    public Result<ItemDetailVO> offline(@PathVariable Long id) {
+        return Result.success("青售提示：商品已下架", itemService.offline(id));
     }
 
     /**

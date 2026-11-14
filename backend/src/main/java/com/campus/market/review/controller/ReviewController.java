@@ -36,6 +36,12 @@ public class ReviewController {
         return Result.success(reviewService.listByTargetUser(userId));
     }
 
+    /** 我发出的评价（用于判断哪些订单已评价） */
+    @GetMapping("/mine")
+    public Result<List<ReviewVO>> mine() {
+        return Result.success(reviewService.listByReviewer(currentUserId()));
+    }
+
     private Long currentUserId() {
         Long userId = UserContext.get();
         if (userId == null) {

@@ -24,7 +24,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/user/register", "/api/user/login", "/api/user/send-code");
+                .excludePathPatterns("/api/user/register", "/api/user/login",
+                        "/api/user/send-code", "/api/user/send-reset-code", "/api/user/reset-password")
+                // 商品详情页（可匿名访问）需要展示卖家评价
+                .excludePathPatterns("/api/review/user/**");
     }
 
     /**

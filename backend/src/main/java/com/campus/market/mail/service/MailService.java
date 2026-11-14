@@ -35,6 +35,29 @@ public class MailService {
 
     /** 发送注册验证码邮件 */
     public void sendRegisterCode(String to, String code) {
+        send(to, "【青售】您的注册验证码",
+                "同学你好：\n\n"
+                        + "欢迎使用青售（校园二手交易平台）。\n\n"
+                        + "您的注册验证码是：" + code + "\n\n"
+                        + "验证码 5 分钟内有效，请勿转发给他人。\n"
+                        + "如非本人操作，请忽略本邮件。\n\n"
+                        + "—— 青售官方团队",
+                "注册验证码");
+    }
+
+    /** 发送密码重置验证码邮件 */
+    public void sendResetCode(String to, String code) {
+        send(to, "【青售】您的密码重置验证码",
+                "同学你好：\n\n"
+                        + "我们收到了你的密码重置请求。\n\n"
+                        + "你的密码重置验证码是：" + code + "\n\n"
+                        + "验证码 5 分钟内有效，请勿转发给他人。\n"
+                        + "如非本人操作，请忽略本邮件，你的密码不会发生变化。\n\n"
+                        + "—— 青售官方团队",
+                "密码重置验证码");
+    }
+
+    private void send(String to, String subject, String content, String label) {
         if (!StringUtils.hasText(fromAddress)) {
             throw new BusinessException(503, "邮件服务未配置发件邮箱（MAIL_USERNAME）");
         }
@@ -43,10 +66,10 @@ public class MailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
             helper.setFrom(new InternetAddress(fromAddress, senderName, "UTF-8"));
             helper.setTo(to);
-            helper.setSubject("【青售】您的注册验证码");
-            helper.setText(buildContent(code), false);
+            helper.setSubject(subject);
+            helper.setText(content, false);
             mailSender.send(message);
-            log.info("注册验证码邮件已发送至 {}", maskEmail(to));
+            log.info("{}邮件已发送至 {}", label, maskEmail(to));
         } catch (MessagingException | UnsupportedEncodingException ex) {
             log.warn("构造验证码邮件失败: {}", ex.getMessage());
             throw new BusinessException(502, "验证码邮件发送失败，请稍后重试");
@@ -54,15 +77,6 @@ public class MailService {
             log.error("发送验证码邮件异常: {}", maskEmail(to), ex);
             throw new BusinessException(502, "验证码邮件发送失败，请检查邮箱地址或稍后重试");
         }
-    }
-
-    private String buildContent(String code) {
-        return "同学你好：\n\n"
-                + "欢迎使用青售（校园二手交易平台）。\n\n"
-                + "您的注册验证码是：" + code + "\n\n"
-                + "验证码 5 分钟内有效，请勿转发给他人。\n"
-                + "如非本人操作，请忽略本邮件。\n\n"
-                + "—— 青售官方团队";
     }
 
     private String maskEmail(String email) {

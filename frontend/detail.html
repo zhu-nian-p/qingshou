@@ -97,6 +97,17 @@
   .credit-num b { display: block; font-size: 20px; color: var(--teal-dark); }
   .credit-num span { font-size: 11px; color: #8aa; }
 
+  /* 卖家评价 */
+  .review-count { font-weight: normal; color: #9bb5b0; font-size: 12px; }
+  .no-review { font-size: 13px; color: #9bb5b0; padding: 6px 0 2px; }
+  .review-summary { margin-bottom: 8px; }
+  .review-item { padding: 12px 0; border-top: 1px dashed #e3f6f1; }
+  .review-item:first-of-type { border-top: none; }
+  .review-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .review-user { font-size: 13px; font-weight: 600; color: #164e45; }
+  .review-content { font-size: 13px; color: #46655f; margin-top: 6px; line-height: 1.6; }
+  .review-time { font-size: 11px; color: #b7c9c5; margin-top: 4px; }
+
   /* 底部操作栏 */
   .action-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
@@ -211,6 +222,29 @@
         <span>信用分</span>
       </div>
     </div>
+
+    <!-- 卖家评价 -->
+    <div class="panel review-panel">
+      <div class="section-label">
+        卖家评价
+        <span class="review-count" v-if="reviews.length">（{{ reviews.length }} 条）</span>
+      </div>
+      <div v-if="reviewLoading" class="no-review">评价加载中…</div>
+      <div v-else-if="reviews.length === 0" class="no-review">暂无评价，完成交易后可以评价卖家</div>
+      <template v-else>
+        <div class="review-summary">
+          <el-rate :model-value="avgRating" disabled show-score score-template="{value} 分"></el-rate>
+        </div>
+        <div class="review-item" v-for="r in reviews" :key="r.id">
+          <div class="review-head">
+            <span class="review-user">{{ r.reviewerName || '匿名同学' }}</span>
+            <el-rate :model-value="r.rating" disabled size="small"></el-rate>
+          </div>
+          <div class="review-content">{{ r.content || '好评' }}</div>
+          <div class="review-time">{{ formatTime(r.createTime) }}</div>
+        </div>
+      </template>
+    </div>
   </div>
 
   <!-- 底部按钮 -->
@@ -291,6 +325,9 @@
       const dialogVisible = ref(false);
       const contactInfo = ref('');
 
+      const reviews = ref([]);
+      const reviewLoading = ref(false);
+
       const orderDialogVisible = ref(false);
       const tradeLocation = ref('一食堂门口');
       const submitting = ref(false);
@@ -306,6 +343,12 @@
         if (/qq/i.test(c)) return '复制QQ号';
         if (/微信|wx/i.test(c)) return '复制微信号';
         return '一键复制';
+      });
+
+      const avgRating = computed(() => {
+        if (!reviews.value.length) return 0;
+        const sum = reviews.value.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+        return Math.round((sum / reviews.value.length) * 10) / 10;
       });
 
       const statusText = computed(() => {
@@ -355,12 +398,30 @@
         }
         try {
           item.value = await fetchDetail();
+          if (item.value && item.value.sellerId) {
+            loadReviews(item.value.sellerId);
+          }
         } catch (e) {
           error.value = e.message || '商品加载失败';
         } finally {
           loading.value = false;
         }
       });
+
+      async function loadReviews(sellerId) {
+        reviewLoading.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/review/user/' + sellerId);
+          const json = await res.json().catch(() => ({}));
+          if (res.ok && json.code === 200) {
+            reviews.value = json.data || [];
+          }
+        } catch (e) {
+          // 评价加载失败不影响商品展示
+        } finally {
+          reviewLoading.value = false;
+        }
+      }
 
       function promptLogin() {
         ElementPlus.ElMessageBox.confirm('登录后才能查看卖家联系方式，是否现在去登录？', '需要登录', {
@@ -496,6 +557,7 @@
       return {
         item, loading, error, dialogVisible, contactInfo,
         sellerAvatar, statusText, wantText, copyLabel,
+        reviews, reviewLoading, avgRating,
         orderDialogVisible, tradeLocation, submitting,
         goBack, wantIt, copyContact, openOrderDialog, submitOrder,
         formatPrice, formatTime, imgSrc, onImgError

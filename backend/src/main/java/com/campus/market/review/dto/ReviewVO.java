@@ -14,6 +14,9 @@ public class ReviewVO {
 
     private Long reviewerId;
 
+    /** 评价人展示名（用户名），详情页展示用 */
+    private String reviewerName;
+
     private Long targetUserId;
 
     private Integer rating;

@@ -181,6 +181,13 @@
   .state-box .state-title { font-size: 16px; font-weight: 700; color: var(--teal-dark); margin-bottom: 6px; }
   .state-box .state-desc { font-size: 13px; color: var(--gray); margin-bottom: 16px; line-height: 1.6; }
 
+  /* 骨架屏 */
+  .skeleton-card {
+    background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  }
+  .sk-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .el-skeleton { --el-skeleton-color: #e9f8f4; --el-skeleton-to-color: #d6f2ec; }
+
   /* 无限滚动底部状态 */
   .load-footer { text-align: center; padding: 20px 10px 8px; font-size: 12px; color: #9bb5b0; }
   .dot-spinner {
@@ -283,6 +290,23 @@
     border-radius: 12px; padding: 10px 12px;
   }
   .topup-note b { color: var(--teal-dark); }
+
+  /* 编辑商品 / 评价弹窗 */
+  .dialog-field { margin-bottom: 12px; }
+  .dialog-field > label {
+    display: block; font-size: 12px; font-weight: 600; color: #36635c; margin-bottom: 6px;
+  }
+  .dialog-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .edit-upload-box {
+    width: 120px; height: 84px; border: 1px dashed #c8eee7; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; color: #7fb3ab;
+    overflow: hidden; cursor: pointer; background: #f4fffd; font-size: 12px;
+  }
+  .edit-upload-box img { width: 100%; height: 100%; object-fit: cover; }
+  .review-order { font-size: 13px; color: #6b7f7c; margin-bottom: 10px; }
+  .reviewed-tag {
+    font-size: 11px; color: #8aa; background: #f1f5f9; padding: 3px 10px; border-radius: 999px;
+  }
   .wechat-id {
     display: inline-block; font-weight: 800; color: var(--teal-dark);
     background: #e6fffa; border-radius: 6px; padding: 0 6px; margin: 0 2px;
@@ -411,13 +435,28 @@
         <span class="hint" v-if="campus !== '全部'">📍 {{ campus }}校区</span>
       </div>
 
-      <div v-loading="loading" element-loading-text="青售加载中…" style="min-height: 260px">
+      <div style="min-height: 260px">
         <!-- 错误 -->
         <div v-if="error" class="state-box">
           <div class="emoji">😥</div>
           <div class="state-title">加载失败了</div>
           <div class="state-desc">{{ error }}</div>
           <el-button type="primary" round @click="reload">重试</el-button>
+        </div>
+
+        <!-- 骨架屏 -->
+        <div v-else-if="loading && items.length === 0" class="grid">
+          <div class="skeleton-card" v-for="n in 8" :key="n">
+            <el-skeleton animated>
+              <template #template>
+                <el-skeleton-item variant="image" style="width:100%; aspect-ratio:1/1"></el-skeleton-item>
+                <div class="sk-body">
+                  <el-skeleton-item variant="text" style="width:85%"></el-skeleton-item>
+                  <el-skeleton-item variant="text" style="width:50%"></el-skeleton-item>
+                </div>
+              </template>
+            </el-skeleton>
+          </div>
         </div>
 
         <!-- 空状态 -->
@@ -523,6 +562,8 @@
             <div class="mini-actions">
               <span class="top-chip" v-if="it.isTop === 1">🔥 置顶中</span>
               <span class="mini-flag" :class="'s' + it.status">{{ itemStatusText(it.status) }}</span>
+              <el-button v-if="it.status === 0" size="small" round @click="openEdit(it)">编辑</el-button>
+              <el-button v-if="it.status === 0" size="small" round @click="offlineItem(it)">下架</el-button>
               <el-button v-if="it.status === 0" class="topup-btn" size="small" round @click="openTopup(it)">
                 申请置顶
               </el-button>
@@ -556,6 +597,10 @@
                 <el-button size="small" type="primary" round @click="confirmTrade(o)">同意面交</el-button>
                 <el-button size="small" round @click="rejectTrade(o)">拒绝接单</el-button>
               </template>
+            </div>
+            <div class="order-actions" v-if="segment === 'bought' && o.status === 1">
+              <el-button v-if="!reviewedMap[o.id]" size="small" type="success" round @click="openReview(o)">评价卖家</el-button>
+              <span v-else class="reviewed-tag">已评价</span>
             </div>
           </div>
         </div>
@@ -613,12 +658,87 @@
       </div>
     </template>
   </el-dialog>
+
+  <!-- 编辑商品 -->
+  <el-dialog v-model="editDialogVisible" title="编辑商品" width="480px" align-center>
+    <div class="dialog-field">
+      <label>标题</label>
+      <el-input v-model="editForm.title" maxlength="100" show-word-limit></el-input>
+    </div>
+    <div class="dialog-field">
+      <label>描述</label>
+      <el-input v-model="editForm.description" type="textarea" :rows="3" maxlength="2000" show-word-limit></el-input>
+    </div>
+    <div class="dialog-grid">
+      <div class="dialog-field">
+        <label>价格（元）</label>
+        <el-input-number v-model="editForm.price" :min="0.01" :precision="2" controls-position="right" style="width:100%"></el-input-number>
+      </div>
+      <div class="dialog-field">
+        <label>分类</label>
+        <el-select v-model="editForm.category" style="width:100%">
+          <el-option v-for="c in categories" :key="c" :label="c" :value="c"></el-option>
+        </el-select>
+      </div>
+    </div>
+    <div class="dialog-grid">
+      <div class="dialog-field">
+        <label>校区</label>
+        <el-select v-model="editForm.campus" style="width:100%">
+          <el-option v-for="c in campuses" :key="c" :label="c" :value="c"></el-option>
+        </el-select>
+      </div>
+      <div class="dialog-field">
+        <label>联系方式</label>
+        <el-input v-model="editForm.contactInfo" maxlength="100" placeholder="微信 / QQ"></el-input>
+      </div>
+    </div>
+    <div class="dialog-field">
+      <label>商品图片</label>
+      <el-upload
+        :action="uploadUrl"
+        :headers="uploadHeaders"
+        name="file"
+        accept="image/*"
+        :show-file-list="false"
+        :before-upload="beforeUpload"
+        :on-success="onEditUploadSuccess"
+        :on-error="onUploadError">
+        <div class="edit-upload-box">
+          <img v-if="editForm.imageUrl" :src="imgSrc(editForm.imageUrl)" alt="商品图" @error="onImgError">
+          <span v-else>＋ 上传图片</span>
+        </div>
+      </el-upload>
+    </div>
+    <template #footer>
+      <el-button round @click="editDialogVisible = false">取消</el-button>
+      <el-button type="primary" round :loading="editSaving" @click="submitEdit">保存修改</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- 评价卖家 -->
+  <el-dialog v-model="reviewDialogVisible" title="评价卖家" width="400px" align-center>
+    <div class="review-order" v-if="reviewOrder">商品：{{ reviewOrder.itemTitle }}</div>
+    <el-rate v-model="reviewRating" show-text :texts="['很差', '较差', '一般', '满意', '非常满意']"></el-rate>
+    <el-input
+      v-model="reviewContent"
+      type="textarea"
+      :rows="3"
+      maxlength="500"
+      show-word-limit
+      placeholder="说说这次交易体验，帮助其他同学参考～"
+      style="margin-top: 12px"></el-input>
+    <template #footer>
+      <el-button round @click="reviewDialogVisible = false">取消</el-button>
+      <el-button type="primary" round :loading="reviewSubmitting" @click="submitReview">提交评价</el-button>
+    </template>
+  </el-dialog>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/element-plus@2.8.8/dist/index.full.min.js"></script>
 <script>
-  const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+  const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
   const API_BASE = 'http://localhost:8080';
   const TOKEN_KEY = 'qingshou_token';
   const USER_KEY = 'qingshou_user';
@@ -660,6 +780,28 @@
       const sold = ref([]);
       const topupMap = ref({});
       const segment = ref('items');
+
+      // ---- 编辑 / 下架 ----
+      const categories = ['数码', '书籍', '生活用品', '运动户外', '其他'];
+      const uploadUrl = API_BASE + '/api/upload';
+      const uploadHeaders = computed(() => ({
+        Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '')
+      }));
+      const editDialogVisible = ref(false);
+      const editItem = ref(null);
+      const editSaving = ref(false);
+      const editForm = reactive({
+        title: '', description: '', price: null,
+        category: '', campus: '前湖', contactInfo: '', imageUrl: ''
+      });
+
+      // ---- 评价 ----
+      const reviewedMap = ref({});
+      const reviewDialogVisible = ref(false);
+      const reviewOrder = ref(null);
+      const reviewRating = ref(5);
+      const reviewContent = ref('');
+      const reviewSubmitting = ref(false);
 
       // ---- 申请置顶弹窗 ----
       // 管理员微信号：换成你自己的真实微信号即可
@@ -871,6 +1013,16 @@
           } catch (e) {
             // 置顶信息加载失败不影响主流程
           }
+
+          // 我发出的评价：用于判断「我买到的」订单是否已评价
+          try {
+            const myReviews = await apiGet('/api/review/mine');
+            const reviewed = {};
+            (myReviews || []).forEach(r => { reviewed[r.orderId] = true; });
+            reviewedMap.value = reviewed;
+          } catch (e) {
+            // 评价信息加载失败不影响主流程
+          }
         } catch (e) {
           ElementPlus.ElMessage.error(e.message);
         }
@@ -999,6 +1151,180 @@
           cancelButtonText: '取消',
           type: 'success'
         }).then(() => postOrderAction(o.id, 'complete', '交易完成，双方信用分 +1')).catch(() => {});
+      }
+
+      // ---- 编辑 / 下架 ----
+
+      async function openEdit(item) {
+        editItem.value = item;
+        editForm.title = item.title || '';
+        editForm.description = '';
+        editForm.price = Number(item.price);
+        editForm.category = item.category || '其他';
+        editForm.campus = item.campus || '前湖';
+        editForm.contactInfo = '';
+        editForm.imageUrl = item.imageUrl || '';
+        editSaving.value = false;
+        editDialogVisible.value = true;
+        // 列表 VO 不含描述/联系方式，打开时拉一次详情补全
+        try {
+          const d = await apiGet('/api/item/' + item.id);
+          editForm.title = d.title || editForm.title;
+          editForm.description = d.description || '';
+          editForm.contactInfo = d.contactInfo || '';
+          editForm.price = Number(d.price);
+          editForm.category = d.category || editForm.category;
+          editForm.campus = d.campus || editForm.campus;
+          editForm.imageUrl = d.imageUrl || '';
+        } catch (e) {
+          // 详情拉取失败时仍可基于列表数据编辑
+        }
+      }
+
+      function beforeUpload(file) {
+        if (!/^image\//.test(file.type)) {
+          ElementPlus.ElMessage.error('只能上传图片文件');
+          return false;
+        }
+        if (file.size / 1024 / 1024 > 5) {
+          ElementPlus.ElMessage.error('图片不能超过 5MB');
+          return false;
+        }
+        return true;
+      }
+
+      function onEditUploadSuccess(res) {
+        if (res && res.code === 200 && res.data && res.data.url) {
+          editForm.imageUrl = res.data.url;
+          ElementPlus.ElMessage.success('图片上传成功');
+        } else {
+          ElementPlus.ElMessage.error((res && res.message) || '图片上传失败');
+        }
+      }
+
+      function onUploadError() {
+        ElementPlus.ElMessage.error('图片上传失败，请检查登录状态或网络');
+      }
+
+      async function submitEdit() {
+        if (!editItem.value) return;
+        if (!editForm.title || !editForm.title.trim()) {
+          return ElementPlus.ElMessage.warning('请填写商品标题');
+        }
+        if (!editForm.price || Number(editForm.price) <= 0) {
+          return ElementPlus.ElMessage.warning('价格必须大于 0');
+        }
+        if (!editForm.category) {
+          return ElementPlus.ElMessage.warning('请选择分类');
+        }
+        editSaving.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/item/' + editItem.value.id, {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify({
+              title: editForm.title.trim(),
+              description: editForm.description.trim(),
+              price: Number(editForm.price),
+              category: editForm.category,
+              campus: editForm.campus,
+              contactInfo: editForm.contactInfo.trim(),
+              imageUrl: editForm.imageUrl || null
+            })
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '保存失败');
+          }
+          ElementPlus.ElMessage.success('修改成功');
+          editDialogVisible.value = false;
+          await loadProfile();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '保存失败');
+        } finally {
+          editSaving.value = false;
+        }
+      }
+
+      async function offlineItem(item) {
+        try {
+          await ElementPlus.ElMessageBox.confirm(
+            `确认下架「${item.title}」？下架后买家将看不到该商品。`,
+            '下架商品',
+            { confirmButtonText: '确认下架', cancelButtonText: '取消', type: 'warning' }
+          );
+        } catch (e) {
+          return;
+        }
+        try {
+          const res = await fetch(API_BASE + '/api/item/' + item.id + '/offline', {
+            method: 'POST',
+            headers: authHeaders()
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '下架失败');
+          }
+          ElementPlus.ElMessage.success('商品已下架');
+          await loadProfile();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '下架失败');
+        }
+      }
+
+      // ---- 评价 ----
+
+      function openReview(order) {
+        reviewOrder.value = order;
+        reviewRating.value = 5;
+        reviewContent.value = '';
+        reviewSubmitting.value = false;
+        reviewDialogVisible.value = true;
+      }
+
+      async function submitReview() {
+        if (!reviewOrder.value) return;
+        reviewSubmitting.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/review', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders()),
+            body: JSON.stringify({
+              orderId: reviewOrder.value.id,
+              rating: reviewRating.value,
+              content: reviewContent.value.trim()
+            })
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '评价失败');
+          }
+          ElementPlus.ElMessage.success('评价成功，感谢你的反馈');
+          reviewDialogVisible.value = false;
+          await loadProfile();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '评价失败');
+        } finally {
+          reviewSubmitting.value = false;
+        }
       }
 
       // ---- 申请置顶 ----
@@ -1149,6 +1475,11 @@
         profile, myItems, bought, sold, topupMap, segments, segment, currentOrders,
         topupDialogVisible, topupItem, selectedDays, topupSubmitting, plans, qrSrc, planPrice,
         adminWechat, copyAdminWechat, isAdmin, goAdmin, topupText,
+        categories, uploadUrl, uploadHeaders,
+        editDialogVisible, editForm, editSaving, openEdit, submitEdit, offlineItem,
+        beforeUpload, onEditUploadSuccess, onUploadError,
+        reviewedMap, reviewDialogVisible, reviewOrder, reviewRating, reviewContent, reviewSubmitting,
+        openReview, submitReview,
         openTopup, submitTopup, onQrError,
         avatarText, switchTab, pickCampus, loadItems, reload, loadProfile,
         switchSegment, segmentCount, goPublish, goDetail, logout,

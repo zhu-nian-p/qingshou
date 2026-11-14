@@ -11,14 +11,15 @@ import org.springframework.util.StringUtils;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.function.BiConsumer;
 
 /**
  * 学校邮箱验证码：发送（限流 + 5 分钟有效）与校验（一次性消费）。
  * <p>
  * Redis key：
  * <ul>
- *   <li>qingshou:email:code:{email}  验证码，TTL 5 分钟</li>
- *   <li>qingshou:email:limit:{email} 发送限流标记，TTL 1 分钟</li>
+ *   <li>注册：qingshou:email:code:{email} / qingshou:email:limit:{email}</li>
+ *   <li>重置密码：qingshou:email:reset:code:{email} / qingshou:email:reset:limit:{email}</li>
  * </ul>
  */
 @Slf4j
@@ -28,6 +29,9 @@ public class EmailCodeService {
 
     private static final String CODE_KEY_PREFIX = "qingshou:email:code:";
     private static final String LIMIT_KEY_PREFIX = "qingshou:email:limit:";
+    private static final String RESET_CODE_KEY_PREFIX = "qingshou:email:reset:code:";
+    private static final String RESET_LIMIT_KEY_PREFIX = "qingshou:email:reset:limit:";
+
     private static final Duration CODE_TTL = Duration.ofMinutes(5);
     private static final Duration SEND_INTERVAL = Duration.ofMinutes(1);
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -35,37 +39,56 @@ public class EmailCodeService {
     private final StringRedisTemplate redisTemplate;
     private final MailService mailService;
 
-    /** 发送验证码：同一邮箱 1 分钟内只能发一次 */
+    /** 发送注册验证码：同一邮箱 1 分钟内只能发一次 */
     public void sendCode(String rawEmail) {
+        send(rawEmail, CODE_KEY_PREFIX, LIMIT_KEY_PREFIX, mailService::sendRegisterCode);
+    }
+
+    /** 发送密码重置验证码 */
+    public void sendResetCode(String rawEmail) {
+        send(rawEmail, RESET_CODE_KEY_PREFIX, RESET_LIMIT_KEY_PREFIX, mailService::sendResetCode);
+    }
+
+    /** 校验并消费注册验证码：匹配后立刻删除，防止重复使用 */
+    public void verifyAndConsume(String rawEmail, String inputCode) {
+        verify(CODE_KEY_PREFIX, rawEmail, inputCode);
+    }
+
+    /** 校验并消费密码重置验证码 */
+    public void verifyAndConsumeReset(String rawEmail, String inputCode) {
+        verify(RESET_CODE_KEY_PREFIX, rawEmail, inputCode);
+    }
+
+    private void send(String rawEmail, String codePrefix, String limitPrefix,
+                      BiConsumer<String, String> sender) {
         String email = normalize(rawEmail);
         if (!email.endsWith(".edu.cn")) {
             throw BusinessException.badRequest("请使用 .edu.cn 结尾的学校邮箱");
         }
 
         Boolean acquired = redisTemplate.opsForValue()
-                .setIfAbsent(LIMIT_KEY_PREFIX + email, "1", SEND_INTERVAL);
+                .setIfAbsent(limitPrefix + email, "1", SEND_INTERVAL);
         if (!Boolean.TRUE.equals(acquired)) {
             throw new BusinessException(429, "发送太频繁，请 1 分钟后再试");
         }
 
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
-        redisTemplate.opsForValue().set(CODE_KEY_PREFIX + email, code, CODE_TTL);
+        redisTemplate.opsForValue().set(codePrefix + email, code, CODE_TTL);
 
         try {
-            mailService.sendRegisterCode(email, code);
+            sender.accept(email, code);
         } catch (RuntimeException ex) {
             // 邮件没发出去：回滚限流与验证码，允许用户立即重试
-            redisTemplate.delete(CODE_KEY_PREFIX + email);
-            redisTemplate.delete(LIMIT_KEY_PREFIX + email);
+            redisTemplate.delete(codePrefix + email);
+            redisTemplate.delete(limitPrefix + email);
             throw ex;
         }
-        log.info("学校邮箱验证码已生成并发送: {}", maskEmail(email));
+        log.info("邮箱验证码已生成并发送: {}", maskEmail(email));
     }
 
-    /** 校验并消费验证码：匹配后立刻删除，防止重复使用 */
-    public void verifyAndConsume(String rawEmail, String inputCode) {
+    private void verify(String codePrefix, String rawEmail, String inputCode) {
         String email = normalize(rawEmail);
-        String key = CODE_KEY_PREFIX + email;
+        String key = codePrefix + email;
         String cached = redisTemplate.opsForValue().get(key);
         if (cached == null || !cached.equals(inputCode == null ? "" : inputCode.trim())) {
             throw BusinessException.badRequest("验证码错误或已过期");

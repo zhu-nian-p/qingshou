@@ -20,4 +20,10 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Update("UPDATE `user` SET status = #{status} WHERE id = #{userId}")
     int updateStatus(@Param("userId") Long userId, @Param("status") int status);
+
+    /**
+     * 重置密码（存 BCrypt 密文）。
+     */
+    @Update("UPDATE `user` SET password = #{password} WHERE id = #{userId}")
+    int updatePassword(@Param("userId") Long userId, @Param("password") String password);
 }

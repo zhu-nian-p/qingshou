@@ -8,6 +8,7 @@ import com.campus.market.review.dto.AddReviewRequest;
 import com.campus.market.review.dto.ReviewVO;
 import com.campus.market.review.entity.Review;
 import com.campus.market.review.mapper.ReviewMapper;
+import com.campus.market.user.entity.User;
 import com.campus.market.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 评价服务：订单完成后买家评价卖家，同时调整卖家信用分。
@@ -70,14 +74,40 @@ public class ReviewService {
         return toVO(reviewMapper.selectById(review.getId()), creditDelta);
     }
 
-    /** 某个用户收到的评价列表 */
+    /** 某个用户收到的评价列表（详情页卖家评价） */
     public List<ReviewVO> listByTargetUser(Long targetUserId) {
+        List<Review> reviews = reviewMapper.selectList(new LambdaQueryWrapper<Review>()
+                .eq(Review::getTargetUserId, targetUserId)
+                .orderByDesc(Review::getCreateTime));
+        return withReviewerNames(reviews);
+    }
+
+    /** 我发出的评价（前端用来判断订单是否已评价） */
+    public List<ReviewVO> listByReviewer(Long reviewerId) {
         return reviewMapper.selectList(new LambdaQueryWrapper<Review>()
-                        .eq(Review::getTargetUserId, targetUserId)
+                        .eq(Review::getReviewerId, reviewerId)
                         .orderByDesc(Review::getCreateTime))
                 .stream()
                 .map(review -> toVO(review, null))
                 .toList();
+    }
+
+    /** 批量补齐评价人用户名 */
+    private List<ReviewVO> withReviewerNames(List<Review> reviews) {
+        if (reviews.isEmpty()) {
+            return List.of();
+        }
+        List<Long> reviewerIds = reviews.stream().map(Review::getReviewerId).distinct().toList();
+        Map<Long, String> names = userMapper.selectList(new LambdaQueryWrapper<User>()
+                        .in(User::getId, reviewerIds))
+                .stream()
+                .collect(Collectors.toMap(User::getId, User::getUsername, (a, b) -> a));
+
+        return reviews.stream().map(review -> {
+            ReviewVO vo = toVO(review, null);
+            vo.setReviewerName(names.get(review.getReviewerId()));
+            return vo;
+        }).toList();
     }
 
     private ReviewVO toVO(Review review, Integer creditDelta) {

@@ -34,6 +34,13 @@ public interface ItemMapper extends BaseMapper<Item> {
     int release(@Param("itemId") Long itemId);
 
     /**
+     * 卖家下架：0=在售 -> 3=已下架。
+     * 条件限定原状态为 0，已预订/已售出的商品不能被卖家下架。
+     */
+    @Update("UPDATE `item` SET status = 3 WHERE id = #{itemId} AND status = 0")
+    int offline(@Param("itemId") Long itemId);
+
+    /**
      * 管理员置顶 / 取消置顶。
      *
      * @param isTop      1=置顶，0=取消

@@ -126,11 +126,11 @@ MAIL_AUTH_CODE=你的SMTP授权码
 
 | 模块 | 接口 |
 |---|---|
-| 用户 | `POST /api/user/send-code`（学校邮箱验证码）、`POST /api/user/register`（需 `emailCode`）、`POST /api/user/login`、`GET /api/user/me` |
+| 用户 | `POST /api/user/send-code`（学校邮箱验证码）、`POST /api/user/register`（需 `emailCode`）、`POST /api/user/login`、`POST /api/user/send-reset-code`（忘记密码发码）、`POST /api/user/reset-password`（验证码重置）、`GET /api/user/me` |
 | 个人中心 | `GET /api/user/me/items`、`GET /api/user/me/trades` |
-| 商品 | `POST /api/item`、`GET /api/item/list?page=1&size=10&keyword=&category=&campus=&sort=`（返回 records + total）、`GET /api/item/{id}` |
+| 商品 | `POST /api/item`、`GET /api/item/list?page=1&size=10&keyword=&category=&campus=&sort=`（返回 records + total）、`GET /api/item/{id}`、`PUT /api/item/{id}`（卖家编辑）、`POST /api/item/{id}/offline`（卖家下架） |
 | 订单 | `POST /api/order`、`POST /api/order/{id}/seller-confirm`、`POST /api/order/{id}/complete`、`POST /api/order/{id}/seller-reject`、`GET /api/order/buyer`、`GET /api/order/seller` |
-| 评价 | `POST /api/review`、`GET /api/review/user/{userId}` |
+| 评价 | `POST /api/review`（订单完成后买家评价）、`GET /api/review/user/{userId}`（匿名可看，详情页展示）、`GET /api/review/mine`（我发出的评价） |
 | 上传 | `POST /api/upload`（form-data，字段 `file`） |
 | AI | `POST /api/ai/generate-desc` |
 | 置顶申请 | `POST /api/topup/apply`（body: `itemId` + `days`，金额后端按 1/7/30 天阶梯计算）、`GET /api/topup/my`（含 `rejectReason`） |
@@ -142,10 +142,10 @@ MAIL_AUTH_CODE=你的SMTP授权码
 
 | 页面 | 说明 |
 |---|---|
-| `login.html` | 登录 / 注册 Tab；注册含用户名、密码、真实姓名、学号、学校邮箱、验证码；「获取验证码」60 秒倒计时；成功后 token 存 localStorage 并跳转主应用 |
-| `index.html` | 主应用，响应式：手机底部导航 + 悬浮发布，桌面左侧固定边栏；主页搜索 + 校区 Tab（全部/上海路/前湖）+ **滑到底部无限滚动**（触底加载下一页、加载中动画、「没有更多啦」提示、切 Tab/搜索自动重置）；商品卡片 2 列 / 4 列自适应，🔥 急售、🏅 高信誉标签；消息（模拟）；我的（资料 / 信用分 / 我发布的 / 我买到的 / 我卖出的 / 退出登录）；订单支持买家「确认完成交易」、卖家「同意面交 / 拒绝接单」；**点击卡片跳转 `detail.html?id=`** |
+| `login.html` | 登录 / 注册 Tab；注册含学校邮箱验证码（60 秒倒计时）；**忘记密码**弹窗（邮箱验证码重置，60 秒倒计时）；成功后 token 存 localStorage 并跳转主应用 |
+| `index.html` | 主应用，响应式：手机底部导航 + 悬浮发布，桌面左侧固定边栏；主页搜索 + 校区 Tab + **骨架屏** + 无限滚动；商品卡片 🔥 急售、🏅 高信誉；我的（资料 / 信用分 / 我发布的 **含编辑、下架** / 我买到的 **含确认完成、评价卖家** / 我卖出的 **含同意/拒绝** / 退出登录）；**点击卡片跳转 `detail.html?id=`** |
 | `publish.html` | 发布闲置：标题、描述、价格、分类、校区、联系方式 + 图片上传（调 `/api/upload`，回显预览）；提交带 token 调 `/api/item`，成功后弹窗并返回首页 |
-| `detail.html` | 商品详情：大图、标题、价格、描述、卖家信息（🏅 高信誉）；底部「我想要」按钮，登录后弹窗展示联系方式；复制按钮按内容动态显示「复制QQ号 / 复制微信号 / 一键复制」；支持弹窗内「直接下单」填写交易地点创建订单 |
+| `detail.html` | 商品详情：大图、标题、价格、描述、卖家信息（🏅 高信誉）；底部「我想要」按钮，登录后弹窗展示联系方式；复制按钮按内容动态显示「复制QQ号 / 复制微信号 / 一键复制」；支持弹窗内「直接下单」；**展示卖家评价（平均分 + 评价列表）** |
 | `admin.html` | 管理员后台（仅 admin01）：Tab 切换「置顶审核」（el-table 待审核申请：商品/申请人/天数/金额/时间，确认收款并置顶 / 拒绝）与「用户封禁」（el-table 全部用户：角色/信用分/状态 el-tag，封禁 / 解封） |
 
 前端通过 `http://localhost:8080` 直连后端，CORS 已全开放。建议用 `start-frontend.cmd` 起静态服务（`python -m http.server 5173`），不要直接双击 HTML。

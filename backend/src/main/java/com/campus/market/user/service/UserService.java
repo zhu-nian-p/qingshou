@@ -8,6 +8,7 @@ import com.campus.market.user.dto.LoginRequest;
 import com.campus.market.user.dto.LoginResponse;
 import com.campus.market.user.dto.RegisterRequest;
 import com.campus.market.user.dto.RegisterResponse;
+import com.campus.market.user.dto.ResetPasswordRequest;
 import com.campus.market.user.dto.UserProfileVO;
 import com.campus.market.user.entity.User;
 import com.campus.market.user.mapper.UserMapper;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -59,8 +61,7 @@ public class UserService {
         return new RegisterResponse(user.getId(), user.getUsername());
     }
 
-    public LoginResponse login(LoginRequest request) {
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+    public LoginResponse login(LoginRequest request) {        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getUsername, request.getUsername().trim()));
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw BusinessException.unauthorized("用户名或密码错误");
@@ -73,8 +74,20 @@ public class UserService {
         return new LoginResponse(token, user.getId(), user.getUsername(), user.getRealName(), user.getRole());
     }
 
-    public UserProfileVO currentProfile() {
-        Long userId = UserContext.get();
+    /** 忘记密码：校验邮箱验证码后重置密码 */
+    public void resetPassword(ResetPasswordRequest request) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>()
+                .eq(User::getSchoolEmail, email));
+        if (users.isEmpty()) {
+            throw BusinessException.badRequest("该邮箱尚未注册");
+        }
+        // 验证码一次性使用，校验通过即删除
+        emailCodeService.verifyAndConsumeReset(email, request.getEmailCode());
+        userMapper.updatePassword(users.get(0).getId(), passwordEncoder.encode(request.getNewPassword()));
+    }
+
+    public UserProfileVO currentProfile() {        Long userId = UserContext.get();
         if (userId == null) {
             throw BusinessException.unauthorized("未登录或登录已过期");
         }

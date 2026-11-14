@@ -79,6 +79,8 @@
   .submit-btn[disabled] { opacity: .65; cursor: not-allowed; }
 
   .foot { margin-top: 18px; text-align: center; font-size: 12px; color: #9bb5b0; }
+  .reset-link { color: var(--teal-dark); font-size: 13px; cursor: pointer; text-decoration: none; }
+  .reset-link:hover { text-decoration: underline; }
 
   .el-message { border-radius: 12px; }
 
@@ -114,6 +116,9 @@
         <el-input v-model="loginForm.password" size="large" type="password" show-password placeholder="请输入密码" @keyup.enter="doLogin"></el-input>
       </div>
       <button class="submit-btn" :disabled="loading" @click="doLogin">{{ loading ? '登录中…' : '登 录' }}</button>
+      <div class="foot">
+        <a class="reset-link" @click="openReset">忘记密码？</a>
+      </div>
       <div class="foot">还没有账号？点击上方「注册」，用学校邮箱完成验证</div>
     </div>
 
@@ -154,6 +159,35 @@
   </div>
 
   <div class="foot" style="margin-top:14px">青售 · 只做校园里的好物</div>
+
+  <!-- 忘记密码 -->
+  <el-dialog v-model="resetDialogVisible" title="重置密码" width="380px" align-center>
+    <div class="field">
+      <label>学校邮箱</label>
+      <el-input v-model="resetForm.email" size="large" placeholder="如：20240001@xxx.edu.cn" clearable></el-input>
+    </div>
+    <div class="field">
+      <label>邮箱验证码</label>
+      <div class="code-row">
+        <el-input v-model="resetForm.emailCode" size="large" maxlength="6" placeholder="6 位验证码" clearable></el-input>
+        <el-button class="code-btn" size="large" :disabled="resetCountdown > 0" @click="sendResetCode">
+          {{ resetCountdown > 0 ? resetCountdown + 's 后重发' : '获取验证码' }}
+        </el-button>
+      </div>
+    </div>
+    <div class="field">
+      <label>新密码</label>
+      <el-input v-model="resetForm.newPassword" type="password" show-password size="large" placeholder="6-32 位新密码"></el-input>
+    </div>
+    <div class="field">
+      <label>确认新密码</label>
+      <el-input v-model="resetForm.confirmPassword" type="password" show-password size="large" placeholder="再次输入新密码"></el-input>
+    </div>
+    <template #footer>
+      <el-button round @click="resetDialogVisible = false">取消</el-button>
+      <el-button type="primary" round :loading="resetLoading" @click="submitReset">确认重置</el-button>
+    </template>
+  </el-dialog>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
@@ -174,6 +208,15 @@
       const regForm = reactive({
         username: '', password: '', realName: '',
         studentId: '', schoolEmail: '', emailCode: ''
+      });
+
+      // ---- 忘记密码 ----
+      const resetDialogVisible = ref(false);
+      const resetLoading = ref(false);
+      const resetCountdown = ref(0);
+      let resetTimer = null;
+      const resetForm = reactive({
+        email: '', emailCode: '', newPassword: '', confirmPassword: ''
       });
 
       function switchTab(t) {
@@ -207,7 +250,83 @@
           }
         }, 1000);
       }
-      onUnmounted(() => { if (timer) clearInterval(timer); });
+      onUnmounted(() => {
+        if (timer) clearInterval(timer);
+        if (resetTimer) clearInterval(resetTimer);
+      });
+
+      function openReset() {
+        resetForm.email = '';
+        resetForm.emailCode = '';
+        resetForm.newPassword = '';
+        resetForm.confirmPassword = '';
+        resetDialogVisible.value = true;
+      }
+
+      function startResetCountdown() {
+        resetCountdown.value = 60;
+        if (resetTimer) clearInterval(resetTimer);
+        resetTimer = setInterval(() => {
+          resetCountdown.value -= 1;
+          if (resetCountdown.value <= 0) {
+            clearInterval(resetTimer);
+            resetTimer = null;
+            resetCountdown.value = 0;
+          }
+        }, 1000);
+      }
+
+      async function sendResetCode() {
+        if (resetCountdown.value > 0) return;
+        const email = (resetForm.email || '').trim();
+        if (!EMAIL_RE.test(email)) {
+          ElementPlus.ElMessage.warning('请输入 .edu.cn 结尾的学校邮箱');
+          return;
+        }
+        try {
+          await api('/api/user/send-reset-code', { email });
+          ElementPlus.ElMessage.success('验证码已发送，请查收学校邮箱（5 分钟内有效）');
+          startResetCountdown();
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message);
+        }
+      }
+
+      async function submitReset() {
+        const f = resetForm;
+        if (!EMAIL_RE.test(f.email.trim())) {
+          ElementPlus.ElMessage.warning('请输入 .edu.cn 结尾的学校邮箱');
+          return;
+        }
+        if (!/^\d{6}$/.test(f.emailCode.trim())) {
+          ElementPlus.ElMessage.warning('请输入 6 位邮箱验证码');
+          return;
+        }
+        if (!f.newPassword || f.newPassword.length < 6 || f.newPassword.length > 32) {
+          ElementPlus.ElMessage.warning('新密码长度需为 6-32 位');
+          return;
+        }
+        if (f.newPassword !== f.confirmPassword) {
+          ElementPlus.ElMessage.warning('两次输入的新密码不一致');
+          return;
+        }
+        resetLoading.value = true;
+        try {
+          await api('/api/user/reset-password', {
+            email: f.email.trim(),
+            emailCode: f.emailCode.trim(),
+            newPassword: f.newPassword
+          });
+          ElementPlus.ElMessage.success('密码重置成功，请用新密码登录');
+          resetDialogVisible.value = false;
+          tab.value = 'login';
+          loginForm.password = '';
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message);
+        } finally {
+          resetLoading.value = false;
+        }
+      }
 
       async function sendCode() {
         if (countdown.value > 0) return;
@@ -308,7 +427,9 @@
 
       return {
         tab, loading, countdown, loginForm, regForm,
-        switchTab, sendCode, doLogin, doRegister
+        switchTab, sendCode, doLogin, doRegister,
+        resetDialogVisible, resetLoading, resetCountdown, resetForm,
+        openReset, sendResetCode, submitReset
       };
     }
   }).use(ElementPlus).mount('#app');
