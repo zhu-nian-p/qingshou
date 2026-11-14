@@ -46,6 +46,6 @@ public class ItemDetailVO {
 
     private LocalDateTime createTime;
 
-    /** 卖家联系方式；未登录时为 null */
-    private String contactInfo;
+    /** 卖家联系方式掩码（如 wx: ali***01）；完整值需调用 /api/item/{id}/contact，且限频 */
+    private String contactMasked;
 }

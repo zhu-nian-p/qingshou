@@ -39,10 +39,18 @@ public class OrderController {
         return Result.success("已确认交易，请与买家约定面交", orderService.sellerConfirm(id, currentUserId()));
     }
 
-    /** 买家确认完成：0=待面交 -> 1=已完成 */
+    /** 买家确认面交：0=待面交 -> 4=待卖家确认完成（双方确认后才算完成） */
     @PostMapping("/{id}/complete")
     public Result<OrderVO> complete(@PathVariable Long id) {
-        return Result.success("青售提示：交易完成，双方信用分 +1", orderService.buyerComplete(id, currentUserId()));
+        return Result.success("青售提示：已确认面交，等待卖家确认完成后生效",
+                orderService.buyerComplete(id, currentUserId()));
+    }
+
+    /** 卖家确认完成：4=待卖家确认完成 -> 1=已完成（此时才加信用分） */
+    @PostMapping("/{id}/seller-complete")
+    public Result<OrderVO> sellerComplete(@PathVariable Long id) {
+        return Result.success("青售提示：交易完成，双方信用分 +1",
+                orderService.sellerComplete(id, currentUserId()));
     }
 
     /** 卖家拒绝接单：订单取消（2），商品恢复在售（0） */

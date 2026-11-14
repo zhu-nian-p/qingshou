@@ -235,11 +235,50 @@ public class ItemService {
         vo.setTopExpireTime(item.getTopExpireTime());
         vo.setCreateTime(item.getCreateTime());
 
-        // 未登录（UserContext 为空）时 contactInfo 保持 null
+        // 未登录（UserContext 为空）时 contactMasked 保持 null
         if (UserContext.get() != null) {
-            vo.setContactInfo(item.getContactInfo());
+            vo.setContactMasked(maskContact(item.getContactInfo()));
         }
         return vo;
+    }
+
+    /**
+     * 获取完整联系方式：必须登录，由 Controller 上的 @RateLimit 限制频率。
+     */
+    public String contact(Long id) {
+        Long userId = UserContext.get();
+        if (userId == null) {
+            throw BusinessException.unauthorized("登录后才能查看卖家联系方式");
+        }
+        Item item = itemMapper.selectById(id);
+        if (item == null) {
+            throw BusinessException.notFound("商品不存在");
+        }
+        if (!StringUtils.hasText(item.getContactInfo())) {
+            throw BusinessException.badRequest("卖家暂未填写联系方式");
+        }
+        return item.getContactInfo();
+    }
+
+    /** 联系方式掩码：保留前缀和首尾字符，避免被批量爬取 */
+    private String maskContact(String contact) {
+        if (!StringUtils.hasText(contact)) {
+            return null;
+        }
+        String prefix = "";
+        String body = contact.trim();
+        int colon = body.indexOf(':');
+        if (colon >= 0 && colon <= 4) {
+            prefix = body.substring(0, colon + 1) + " ";
+            body = body.substring(colon + 1).trim();
+        }
+        if (body.length() <= 2) {
+            return prefix + "***";
+        }
+        if (body.length() <= 6) {
+            return prefix + body.charAt(0) + "***" + body.substring(body.length() - 1);
+        }
+        return prefix + body.substring(0, 3) + "***" + body.substring(body.length() - 2);
     }
 
     /**

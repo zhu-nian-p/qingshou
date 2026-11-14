@@ -14,7 +14,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         "com.campus.market.item.mapper",
         "com.campus.market.order.mapper",
         "com.campus.market.review.mapper",
-        "com.campus.market.topup.mapper"
+        "com.campus.market.topup.mapper",
+        "com.campus.market.file.mapper"
 })
 @EnableConfigurationProperties(JwtProperties.class)
 public class CampusMarketApplication {

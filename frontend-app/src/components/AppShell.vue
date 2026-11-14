@@ -30,6 +30,7 @@
 
   <main :class="['main', { mobile: isMobile }]">
     <slot />
+    <div class="site-footer">{{ disclaimer }}</div>
   </main>
 
   <nav class="bottom-nav" v-if="isMobile">
@@ -45,10 +46,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
+import { DISCLAIMER } from '@/constants/legal';
 
 defineProps({
   active: { type: String, default: 'home' }
 });
+
+const disclaimer = DISCLAIMER;
 
 const router = useRouter();
 const user = useUserStore();

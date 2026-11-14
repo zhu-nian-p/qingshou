@@ -56,13 +56,25 @@
           </div>
         </div>
         <button class="submit-btn" :disabled="loading" @click="doRegister">{{ loading ? '注册中…' : '注 册' }}</button>
+        <div class="agree-row">
+          <el-checkbox v-model="agree">
+            我已阅读并同意
+            <a class="legal-link" @click.stop.prevent="agreementVisible = true">《用户协议》</a>
+            和
+            <a class="legal-link" @click.stop.prevent="privacyVisible = true">《隐私政策》</a>
+          </el-checkbox>
+        </div>
         <div class="foot">注册即表示同意青售校园二手交易规范</div>
       </div>
     </div>
 
-    <div class="foot" style="margin-top:14px">青售 · 只做校园里的好物</div>
+    <div class="foot disclaimer">{{ disclaimer }}</div>
 
     <el-dialog v-model="resetVisible" title="重置密码" width="380px" align-center>
+      <div class="field">
+        <label>用户名</label>
+        <el-input v-model="resetForm.username" size="large" placeholder="请输入注册时的用户名" clearable></el-input>
+      </div>
       <div class="field">
         <label>学校邮箱</label>
         <el-input v-model="resetForm.email" size="large" placeholder="如：20240001@xxx.edu.cn" clearable></el-input>
@@ -89,6 +101,20 @@
         <el-button type="primary" round :loading="resetLoading" @click="submitReset">确认重置</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="agreementVisible" title="用户协议" width="520px" align-center>
+      <pre class="legal-text">{{ userAgreement }}</pre>
+      <template #footer>
+        <el-button type="primary" round @click="agreementVisible = false">我已阅读</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="privacyVisible" title="隐私政策" width="520px" align-center>
+      <pre class="legal-text">{{ privacyPolicy }}</pre>
+      <template #footer>
+        <el-button type="primary" round @click="privacyVisible = false">我已阅读</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -98,6 +124,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { api } from '@/api/http';
 import { useUserStore } from '@/stores/user';
+import { USER_AGREEMENT, PRIVACY_POLICY, DISCLAIMER } from '@/constants/legal';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.edu\.cn$/;
 const router = useRouter();
@@ -119,7 +146,13 @@ const regForm = reactive({
 
 const resetVisible = ref(false);
 const resetLoading = ref(false);
-const resetForm = reactive({ email: '', emailCode: '', newPassword: '', confirmPassword: '' });
+const resetForm = reactive({ username: '', email: '', emailCode: '', newPassword: '', confirmPassword: '' });
+const agree = ref(false);
+const agreementVisible = ref(false);
+const privacyVisible = ref(false);
+const userAgreement = USER_AGREEMENT;
+const privacyPolicy = PRIVACY_POLICY;
+const disclaimer = DISCLAIMER;
 
 function switchTab(t) {
   tab.value = t;
@@ -191,6 +224,9 @@ async function doRegister() {
   if (!/^\d{8,9}$/.test(f.studentId.trim())) return ElMessage.warning('学号必须是 8-9 位数字');
   if (!EMAIL_RE.test(f.schoolEmail.trim())) return ElMessage.warning('请使用 .edu.cn 结尾的学校邮箱');
   if (!/^\d{6}$/.test(f.emailCode.trim())) return ElMessage.warning('请输入 6 位邮箱验证码');
+  if (!agree.value) {
+    return ElMessage.warning('请先阅读并同意《用户协议》和《隐私政策》');
+  }
 
   loading.value = true;
   try {
@@ -230,6 +266,7 @@ async function sendResetCode() {
 
 async function submitReset() {
   const f = resetForm;
+  if (!f.username.trim()) return ElMessage.warning('请填写用户名');
   if (!EMAIL_RE.test(f.email.trim())) return ElMessage.warning('请输入 .edu.cn 结尾的学校邮箱');
   if (!/^\d{6}$/.test(f.emailCode.trim())) return ElMessage.warning('请输入 6 位邮箱验证码');
   if (!f.newPassword || f.newPassword.length < 6 || f.newPassword.length > 32) {
@@ -240,6 +277,7 @@ async function submitReset() {
   resetLoading.value = true;
   try {
     await api.post('/api/user/reset-password', {
+      username: f.username.trim(),
       email: f.email.trim(),
       emailCode: f.emailCode.trim(),
       newPassword: f.newPassword
@@ -290,6 +328,28 @@ async function submitReset() {
 }
 .submit-btn[disabled] { opacity: .65; cursor: not-allowed; }
 .foot { margin-top: 18px; text-align: center; font-size: 12px; color: #9bb5b0; }
+.disclaimer {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .7);
+  border: 1px dashed #d9f3ee;
+  line-height: 1.6;
+  color: #8aa;
+  text-align: left;
+}
+.agree-row { margin: 4px 0 2px; }
+.legal-link { color: var(--teal-dark); text-decoration: underline; cursor: pointer; }
+.legal-text {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #46655f;
+  max-height: 55vh;
+  overflow-y: auto;
+  margin: 0;
+}
 .reset-link { color: var(--teal-dark); font-size: 13px; cursor: pointer; text-decoration: none; }
 .reset-link:hover { text-decoration: underline; }
 @media (max-width: 480px) {

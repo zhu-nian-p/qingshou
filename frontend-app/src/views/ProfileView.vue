@@ -27,7 +27,9 @@
       </button>
     </div>
 
-    <div v-if="segment === 'items'">
+    <SkeletonGrid v-if="loadingProfile" :count="4" />
+
+    <div v-else-if="segment === 'items'">
       <div v-if="myItems.length === 0" class="state-box small">
         <div class="emoji">📦</div>
         <div class="state-desc">还没发布过商品，去首页发第一个吧～</div>
@@ -73,9 +75,12 @@
             <template v-if="segment === 'bought'">
               <el-button size="small" type="primary" round @click="completeTrade(o)">确认完成交易</el-button>
             </template>
-            <template v-else>
+            <template v-else-if="o.status === 3">
               <el-button size="small" type="primary" round @click="confirmTrade(o)">同意面交</el-button>
               <el-button size="small" round @click="rejectTrade(o)">拒绝接单</el-button>
+            </template>
+            <template v-else-if="o.status === 4">
+              <el-button size="small" type="success" round @click="sellerConfirmComplete(o)">确认完成交易</el-button>
             </template>
           </div>
           <div class="order-actions" v-if="segment === 'bought' && o.status === 1">
@@ -104,6 +109,7 @@ import AppShell from '@/components/AppShell.vue';
 import TopUpDialog from '@/components/TopUpDialog.vue';
 import EditItemDialog from '@/components/EditItemDialog.vue';
 import ReviewDialog from '@/components/ReviewDialog.vue';
+import SkeletonGrid from '@/components/SkeletonGrid.vue';
 import { api } from '@/api/http';
 import { useUserStore } from '@/stores/user';
 import { imgSrc, onImgError, formatPrice, formatTime, itemStatusText } from '@/utils/media';
@@ -115,6 +121,7 @@ const profile = ref({});
 const myItems = ref([]);
 const bought = ref([]);
 const sold = ref([]);
+const loadingProfile = ref(true);
 const topupMap = ref({});
 const reviewedMap = ref({});
 const segment = ref('items');
@@ -156,7 +163,7 @@ function orderStatusText(o) {
 }
 function canAct(o) {
   if (segment.value === 'bought') return o.status === 0;
-  if (segment.value === 'sold') return o.status === 3;
+  if (segment.value === 'sold') return o.status === 3 || o.status === 4;
   return false;
 }
 function segmentCount(key) {
@@ -166,6 +173,7 @@ function segmentCount(key) {
 }
 
 async function loadProfile() {
+  loadingProfile.value = true;
   try {
     const [me, mine, trades] = await Promise.all([
       api.get('/api/user/me'),
@@ -193,6 +201,8 @@ async function loadProfile() {
     } catch (e) { /* 评价状态失败不影响主流程 */ }
   } catch (e) {
     ElMessage.error(e.message || '加载失败');
+  } finally {
+    loadingProfile.value = false;
   }
 }
 
@@ -260,11 +270,19 @@ function rejectTrade(o) {
 }
 
 function completeTrade(o) {
-  ElMessageBox.confirm('确认已经完成面交？确认后你与卖家信用分各 +1。', '确认完成交易', {
+  ElMessageBox.confirm('确认已完成面交？确认后需卖家确认完成，交易才正式生效、双方信用分 +1。', '确认面交', {
+    confirmButtonText: '确认已面交',
+    cancelButtonText: '取消',
+    type: 'success'
+  }).then(() => postOrderAction(o, 'complete', '已确认面交，等待卖家确认完成')).catch(() => {});
+}
+
+function sellerConfirmComplete(o) {
+  ElMessageBox.confirm('确认与买家完成交易？确认后商品售出，双方信用分 +1。', '确认完成交易', {
     confirmButtonText: '确认完成',
     cancelButtonText: '取消',
     type: 'success'
-  }).then(() => postOrderAction(o, 'complete', '交易完成，双方信用分 +1')).catch(() => {});
+  }).then(() => postOrderAction(o, 'seller-complete', '交易完成，双方信用分 +1')).catch(() => {});
 }
 
 function logout() {

@@ -2,6 +2,9 @@ package com.campus.market.file.controller;
 
 import com.campus.market.common.BusinessException;
 import com.campus.market.common.Result;
+import com.campus.market.file.service.UploadQuotaService;
+import com.campus.market.security.UserContext;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,15 +32,25 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class UploadController {
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp", "bmp");
+
+    private final UploadQuotaService uploadQuotaService;
 
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
 
     @PostMapping("/upload")
     public Result<Map<String, Object>> upload(@RequestParam("file") MultipartFile file) {
+        Long userId = UserContext.get();
+        if (userId == null) {
+            throw BusinessException.unauthorized("登录后才能上传图片");
+        }
+        // 配额检查：每个用户最多 50 张
+        uploadQuotaService.ensureQuota(userId);
+
         if (file == null || file.isEmpty()) {
             throw BusinessException.badRequest("请选择要上传的图片");
         }
@@ -73,6 +86,7 @@ public class UploadController {
         String fullUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path(relativeUrl)
                 .toUriString();
+        uploadQuotaService.record(userId, relativeUrl, filename, file.getSize());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("url", relativeUrl);

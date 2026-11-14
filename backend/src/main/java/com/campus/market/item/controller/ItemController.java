@@ -3,6 +3,7 @@ package com.campus.market.item.controller;
 import com.campus.market.common.PageResult;
 import com.campus.market.common.Result;
 import com.campus.market.common.ratelimit.RateLimit;
+import com.campus.market.item.dto.ContactInfoVO;
 import com.campus.market.item.dto.ItemDetailVO;
 import com.campus.market.item.dto.ItemListVO;
 import com.campus.market.item.dto.ItemUpdateRequest;
@@ -65,6 +66,16 @@ public class ItemController {
     @PostMapping("/{id}/offline")
     public Result<ItemDetailVO> offline(@PathVariable Long id) {
         return Result.success("青售提示：商品已下架", itemService.offline(id));
+    }
+
+    /**
+     * 获取完整联系方式：必须登录，同一用户 1 分钟最多 3 次。
+     * 详情接口只返回掩码，只有用户主动复制时才调这里拿完整值。
+     */
+    @RateLimit(time = 60, count = 3)
+    @GetMapping("/{id}/contact")
+    public Result<ContactInfoVO> contact(@PathVariable Long id) {
+        return Result.success(new ContactInfoVO(itemService.contact(id)));
     }
 
     /**

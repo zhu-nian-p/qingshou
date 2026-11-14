@@ -108,7 +108,7 @@
         <el-button type="primary" round @click="copyContact">{{ copyLabel }}</el-button>
       </div>
       <div class="contact-tip">
-        复制后打开微信 / QQ，粘贴到搜索框添加好友。<br>
+        当前仅展示掩码，点击「复制」后会获取完整联系方式并复制。<br>
         交易请选择校内公共场所面交，注意安全。
       </div>
       <template #footer>
@@ -221,11 +221,11 @@ async function wantIt() {
   try {
     const data = await fetchDetail();
     item.value = data;
-    if (!data.contactInfo) {
+    if (!data.contactMasked) {
       ElMessage.warning('卖家暂未填写联系方式');
       return;
     }
-    contactInfo.value = data.contactInfo;
+    contactInfo.value = data.contactMasked;
     contactVisible.value = true;
   } catch (e) {
     ElMessage.error(e.message || '获取联系方式失败');
@@ -233,9 +233,15 @@ async function wantIt() {
 }
 
 async function copyContact() {
-  const ok = await copyText(contactInfo.value);
-  if (ok) ElMessage.success('复制成功，快去微信添加好友吧！');
-  else ElMessage.error('复制失败，请手动长按复制');
+  try {
+    // 完整联系方式只在点击复制时获取，且后端限制 1 分钟 3 次
+    const data = await api.get('/api/item/' + itemId + '/contact');
+    const ok = await copyText(data.contactInfo || '');
+    if (ok) ElMessage.success('复制成功，快去微信添加好友吧！');
+    else ElMessage.error('复制失败，请手动长按复制');
+  } catch (e) {
+    ElMessage.error(e.message || '获取完整联系方式失败，请稍后再试');
+  }
 }
 
 function openOrder() {

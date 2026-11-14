@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `user` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_user_username`   (`username`)    COMMENT '用户名唯一索引：登录账号不可重复',
   UNIQUE KEY `uk_user_student_id` (`student_id`)  COMMENT '学号唯一索引：同一学号只能注册一次',
-  KEY `idx_user_school_email`     (`school_email`) COMMENT '按校园邮箱查询用户',
+  UNIQUE KEY `uk_user_school_email` (`school_email`) COMMENT '学校邮箱唯一索引：防止同一邮箱注册多个账号、重置密码串号',
   KEY `idx_user_status`           (`status`)       COMMENT '后台按状态筛选（如列出封禁用户）',
   CONSTRAINT `chk_user_student_id` CHECK (REGEXP_LIKE(`student_id`, '^[0-9]{8,9}$')),
   CONSTRAINT `chk_user_status`     CHECK (`status` IN (0, 1))
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS `order` (
   `buyer_id`       BIGINT UNSIGNED NOT NULL                COMMENT '买家用户ID，关联 user.id',
   `seller_id`      BIGINT UNSIGNED NOT NULL                COMMENT '卖家用户ID，关联 user.id；冗余存储，避免查订单时再联表 item',
   `trade_location` VARCHAR(200)    NOT NULL                COMMENT '线下交易地点，纯文本（如「三教门口」「图书馆一楼大厅」），不做经纬度地理编码',
-  `status`         TINYINT         NOT NULL DEFAULT 0      COMMENT '订单状态：0=待面交，1=已完成，2=已取消，3=待卖家确认',
+  `status`         TINYINT         NOT NULL DEFAULT 0      COMMENT '订单状态：0=待面交，1=已完成，2=已取消，3=待卖家确认，4=买家已确认面交、待卖家确认完成',
   `create_time`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '下单时间',
   `update_time`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间（状态变更时间可据此推断）',
   PRIMARY KEY (`id`),
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS `order` (
   CONSTRAINT `fk_order_item`   FOREIGN KEY (`item_id`)   REFERENCES `item` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_order_buyer`  FOREIGN KEY (`buyer_id`)  REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_order_seller` FOREIGN KEY (`seller_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT `chk_order_status` CHECK (`status` IN (0, 1, 2, 3))
+  CONSTRAINT `chk_order_status` CHECK (`status` IN (0, 1, 2, 3, 4))
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci
@@ -177,7 +177,26 @@ CREATE TABLE IF NOT EXISTS `top_up_apply` (
 
 
 -- ============================================================================
--- 6. 建表结果自检：列出本库中已创建的表及注释
+-- 6. 上传记录表 file_upload
+--    用于限制每个用户最多上传 50 张图片，防止刷接口把服务器磁盘打满。
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS `file_upload` (
+  `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '上传记录ID',
+  `user_id`     BIGINT UNSIGNED NOT NULL                COMMENT '上传用户ID，关联 user.id',
+  `url`         VARCHAR(500)    NOT NULL                COMMENT '访问地址（如 /uploads/xxx.png）',
+  `filename`    VARCHAR(255)    NOT NULL                COMMENT '存储文件名',
+  `size`        BIGINT          NOT NULL DEFAULT 0      COMMENT '文件大小（字节）',
+  `create_time` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_file_upload_user` (`user_id`, `create_time`),
+  CONSTRAINT `fk_file_upload_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci
+  COMMENT = '图片上传记录：用户上传配额统计';
+
+-- ============================================================================
+-- 7. 建表结果自检：列出本库中已创建的表及注释
 -- ============================================================================
 SELECT TABLE_NAME AS `已创建表`, TABLE_COMMENT AS `说明`
 FROM information_schema.TABLES

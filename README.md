@@ -29,29 +29,24 @@ campus-market/
 │   │   ├── security/            JWT 拦截器、上下文
 │   │   └── common/              统一返回、异常处理、敏感词
 │   └── src/main/resources/application.yml
-├── frontend/
-│   ├── login.html               旧版单文件前端（保留作回退）
-│   ├── index.html
-│   ├── publish.html
-│   ├── detail.html
-│   └── admin.html
-├── frontend-app/                新版 Vite + Vue3 工程（推荐）
+├── frontend-app/                Vite + Vue3 前端工程（唯一前端）
 │   ├── src/
 │   │   ├── components/          组件：AppShell / ItemCard / 弹窗等
 │   │   ├── views/               页面：Login / Home / Profile / Publish / Detail / Admin
 │   │   ├── router/              Vue Router + 鉴权守卫
 │   │   ├── stores/              Pinia（用户 Token / 资料）
 │   │   ├── api/                 fetch 封装（token 注入、401 处理）
+│   │   ├── constants/           用户协议 / 隐私政策 / 免责声明文本
 │   │   └── styles/              全局主题样式
-│   ├── vite.config.js           dev 端口 5174 + /api、/uploads 代理
+│   ├── vite.config.js           dev 端口 5174 + /api、/uploads、/ws 代理
 │   └── README.md                前端工程运行说明
-├── sql/                         增量迁移脚本（002 ~ 009）
+├── sql/                         增量迁移脚本（002 ~ 012）
 ├── docs/                        文档与截图
 ├── init.sql                     全量建库建表脚本
 ├── docker-compose.yml           MySQL + Redis
 ├── start-backend.cmd / .ps1     启动后端
 ├── stop-backend.cmd / .ps1      停止后端（释放 8080）
-├── start-frontend.cmd           启动前端静态服务（5173）
+├── start-frontend.cmd           启动 Vite 前端（5174）
 ├── build-backend.cmd            打包后端 jar
 ├── .env.local                   本地密钥（已 gitignore，不进版本库）
 └── .tools/                      便携 JDK17 + Maven（已 gitignore）
@@ -66,22 +61,18 @@ campus-market/
    docker compose up -d
    docker compose ps        # mysql / redis 两个容器都应为 healthy
    ```
-   > 首次初始化会自动执行 `init.sql`；已有数据库升级时，按顺序执行 `sql/002 ~ 009` 的增量脚本。
+   > 首次初始化会自动执行 `init.sql`；已有数据库升级时，按顺序执行 `sql/002 ~ 012` 的增量脚本。
 3. **启动后端**：双击 `start-backend.cmd`
    - 成功标志：日志出现 `Tomcat started on port 8080` 和 `Started CampusMarketApplication`
    - 后端地址：http://localhost:8080
-4. **启动前端（二选一）**
-   - **推荐：Vite 工程版**（工程化、组件化、Vue Router + Pinia）
-     ```powershell
-     cd D:\campus-market\frontend-app
-     npm install        # 首次
-     npm run dev        # http://localhost:5174
-     ```
-   - 旧版静态页：双击 `start-frontend.cmd`（http://localhost:5173/index.html）
-5. **停止**：双击 `stop-backend.cmd` 停止后端（释放 8080），前端在命令行 Ctrl+C 停止（释放 5174 / 5173）
+4. **启动前端**：双击 `start-frontend.cmd`（Vite 工程，http://localhost:5174）
+   - 首次运行会自动 `npm install`（需要 Node.js 18+）
+   - 也可手动：`cd frontend-app && npm run dev`
+5. **停止**：双击 `stop-backend.cmd` 停止后端（释放 8080），前端在命令行 Ctrl+C 停止（释放 5174）
 
 > 后端日志在 `logs\startup-*.log`，启动失败时把最后 30 行发出来即可定位。
-> `.env.local` 保存本机密钥（DeepSeek Key / 邮箱授权码），启动脚本会自动加载，不会进 git。
+> `.env.local` 保存本机密钥：`JWT_SECRET`、DeepSeek Key、邮箱授权码；启动脚本会自动加载，不会进 git。
+> 旧版 `frontend/*.html` 已删除，只维护 `frontend-app` 一套代码。
 
 ## 测试账号
 
@@ -109,7 +100,7 @@ campus-market/
 | 商品详情 | http://localhost:5174/detail/3 | `3` 为商品 ID |
 | 管理后台 | http://localhost:5174/admin | 仅 admin01 可进 |
 
-旧版静态页（端口 5173）：`/login.html`、`/index.html`、`/publish.html`、`/detail.html?id=3`、`/admin.html`。
+旧版静态页已删除，只保留 `frontend-app` 一套前端代码。
 
 ## 前端工程化说明（Vite + Vue3）
 
@@ -117,13 +108,34 @@ campus-market/
 - **路由**：Vue Router（`/login`、`/`、`/messages`、`/profile`、`/publish`、`/detail/:id`、`/admin`），带登录/管理员守卫
 - **状态**：Pinia `useUserStore` 管理 token、用户资料、登录登出，并持久化到 localStorage
 - **接口层**：`src/api/http.js` 统一注入 token，401 自动清理登录态并跳转登录页
-- **开发代理**：Vite 把 `/api`、`/uploads` 代理到 `http://localhost:8080`，无需处理 CORS
+- **开发代理**：Vite 把 `/api`、`/uploads`、`/ws` 代理到 `http://localhost:8080`
 - 详细命令与目录见 `frontend-app/README.md`
+
+## 安全加固（上线前 P0 修复）
+
+| 项 | 实现 |
+|---|---|
+| 邮箱唯一 | `user.school_email` 唯一索引（迁移 010）；注册前检查邮箱是否已注册 |
+| 重置密码防接管 | 必须同时匹配「用户名 + 邮箱 + 验证码」，缺一不可 |
+| 双向确认交易 | `0 待面交 → 4 待卖家确认完成 → 1 已完成`；买家确认只改订单状态，**卖家确认后**才售出商品、双方 +1 信用分 |
+| 联系方式防爬 | 详情接口只返回掩码（如 `wx: xia***01`）；完整值走 `GET /api/item/{id}/contact`，`@RateLimit(60s, 3次)`，点击复制才请求 |
+| 上传配额 | 每用户最多 50 张（`file_upload` 表统计，超限 400） |
+| CORS 白名单 | 默认只允许 `http://localhost:5174` / `127.0.0.1:5174`，生产用 `CORS_ALLOWED_ORIGINS` 覆盖 |
+| JWT 密钥 | 只从环境变量 `JWT_SECRET` 读取（写在 `.env.local`，至少 32 字符），yml 不再硬编码 |
+| 移动端键盘 | 输入框聚焦自动 `scrollIntoView`，`scroll-padding-bottom` 预留键盘空间 |
+| 骨架屏 | 首页、我的、管理后台表格均有骨架屏 |
+
+## 合规与法律文本
+
+- 注册页新增 **同意《用户协议》/《隐私政策》** 勾选框，未勾选不允许注册
+- 协议与隐私政策简易文本在 `frontend-app/src/constants/legal.js`，弹窗可滚动阅读
+- 全站页脚展示免责声明：平台仅提供信息撮合，线下交易风险自负
+- 上线前仍需：ICP/公安备案、举报入口与处理后台、敏感词外置与图片审核（详见上线评估报告 P0 清单）
 
 ## 数据状态
 
 仓库默认数据库为干净的演示数据：4 件在售商品（item 3 置顶中）、4 个测试账号、0 订单、0 置顶申请、0 评价。
-所有业务流程（注册 → 发布 → 浏览 → 下单 → 卖家确认 → 面交完成/拒绝 → 评价 → 置顶申请 → 管理员审核）均可直接用上述账号跑通。
+所有业务流程（注册 → 发布 → 浏览 → 下单 → 卖家确认 → 买家确认面交 → 卖家确认完成/拒绝 → 评价 → 置顶申请 → 管理员审核）均可直接用上述账号跑通。
 
 ## Redis 商品列表缓存
 

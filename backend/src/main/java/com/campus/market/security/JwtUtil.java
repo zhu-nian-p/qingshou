@@ -19,7 +19,11 @@ public class JwtUtil {
 
     public JwtUtil(JwtProperties properties) {
         this.properties = properties;
-        byte[] secretBytes = properties.getSecret().getBytes(StandardCharsets.UTF_8);
+        String secret = properties.getSecret();
+        if (secret == null || secret.isBlank() || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT_SECRET 未配置或长度不足 32 个字符，请在 .env.local 中设置");
+        }
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
         this.key = Keys.hmacShaKeyFor(secretBytes);
     }
 

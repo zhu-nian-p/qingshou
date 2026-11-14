@@ -44,6 +44,12 @@ spring:
 # 通过 /uploads/** 静态映射对外访问
 app:
   upload-dir: uploads
+  # 每个用户最多上传 50 张图片（防刷接口打满磁盘）
+  upload:
+    max-per-user: 50
+  # 允许的前端来源（逗号分隔）；生产环境用 CORS_ALLOWED_ORIGINS 覆盖为正式域名
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5174,http://127.0.0.1:5174}
   mail:
     # 邮件发件人显示名称
     sender-name: 青售官方团队
@@ -66,8 +72,8 @@ mybatis-plus:
       column-format: "`%s`"
 
 jwt:
-  # 本地开发密钥，至少 32 个字符。不要把这把密钥用到生产环境。
-  secret: "campus-market-jwt-secret-key-2026-dev-only"
+  # 生产密钥只从环境变量 JWT_SECRET 读取（见 .env.local / 服务器环境变量），不要写死在代码里
+  secret: ${JWT_SECRET:}
   expire-hours: 24
 
 # 订单超时自动取消

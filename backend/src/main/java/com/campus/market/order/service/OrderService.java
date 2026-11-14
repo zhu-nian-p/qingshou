@@ -37,6 +37,8 @@ public class OrderService {
     public static final int STATUS_CANCELED = 2;
     /** 待卖家确认（下单后的初始状态） */
     public static final int STATUS_PENDING_SELLER = 3;
+    /** 买家已确认面交，待卖家确认完成 */
+    public static final int STATUS_PENDING_SELLER_CONFIRM = 4;
 
     private static final int ITEM_ON_SALE = 0;
 
@@ -108,34 +110,52 @@ public class OrderService {
     }
 
     /**
-     * 买家确认完成：0=待面交 -> 1=已完成。
+     * 买家确认面交：0=待面交 -> 4=待卖家确认完成。
      * <p>
-     * 严格校验操作人必须是 buyer_id（卖家来点直接 403）；
-     * 完成后商品置为 2=已售出，买卖双方信用分各 +1。
+     * 只记录买家确认，不直接完成交易、不改商品状态、不加信用分，
+     * 必须等卖家在「我卖出的」里确认完成，双方各 +1 信用分才生效。
      */
     @Transactional
     public OrderVO buyerComplete(Long orderId, Long currentUserId) {
         Order order = getExistingOrder(orderId);
         if (!order.getBuyerId().equals(currentUserId)) {
-            throw BusinessException.forbidden("只有买家本人可以确认完成交易");
+            throw BusinessException.forbidden("只有买家本人可以确认面交");
         }
         if (order.getStatus() != STATUS_WAIT_MEET) {
-            throw BusinessException.badRequest("订单当前状态不是「待面交」，无法确认完成");
+            throw BusinessException.badRequest("订单当前状态不是「待面交」，无法确认");
         }
 
-        // 订单 0 -> 1，带原状态条件，防止重复点击导致信用分加两次
-        int updated = orderMapper.completeByBuyer(orderId, currentUserId);
+        int updated = orderMapper.buyerConfirmMeet(orderId, currentUserId);
+        if (updated != 1) {
+            throw BusinessException.badRequest("订单状态已发生变化，请刷新后重试");
+        }
+        return toVO(orderMapper.selectById(orderId), itemMapper.selectById(order.getItemId()));
+    }
+
+    /**
+     * 卖家确认完成：4=待卖家确认完成 -> 1=已完成。
+     * 此时才把商品置为已售出，并给买卖双方各 +1 信用分。
+     */
+    @Transactional
+    public OrderVO sellerComplete(Long orderId, Long currentUserId) {
+        Order order = getExistingOrder(orderId);
+        if (!order.getSellerId().equals(currentUserId)) {
+            throw BusinessException.forbidden("只有卖家本人可以确认完成交易");
+        }
+        if (order.getStatus() != STATUS_PENDING_SELLER_CONFIRM) {
+            throw BusinessException.badRequest("买家还未确认面交，暂时不能完成交易");
+        }
+
+        int updated = orderMapper.sellerConfirmComplete(orderId, currentUserId);
         if (updated != 1) {
             throw BusinessException.badRequest("订单状态已发生变化，请刷新后重试");
         }
 
-        // 商品 1 -> 2
         int itemUpdated = itemMapper.markAsSold(order.getItemId());
         if (itemUpdated != 1) {
             throw BusinessException.badRequest("商品状态异常，无法完成交易");
         }
 
-        // 双方信用分 +1
         userMapper.addCreditScore(order.getBuyerId(), 1);
         userMapper.addCreditScore(order.getSellerId(), 1);
         cacheService.evictAll();
@@ -253,6 +273,7 @@ public class OrderService {
         return switch (status) {
             case STATUS_PENDING_SELLER -> "待卖家确认";
             case STATUS_WAIT_MEET -> "待面交";
+            case STATUS_PENDING_SELLER_CONFIRM -> "待卖家确认完成";
             case STATUS_COMPLETED -> "已完成";
             case STATUS_CANCELED -> "已取消";
             default -> "未知";

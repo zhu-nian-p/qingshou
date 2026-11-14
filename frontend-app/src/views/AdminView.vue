@@ -60,7 +60,8 @@
               <span class="spacer"></span>
               <el-button size="small" round :loading="loadingApplies" @click="loadApplies">刷新</el-button>
             </div>
-            <el-table :data="applies" v-loading="loadingApplies" empty-text="暂无待审核申请" style="width:100%">
+            <el-skeleton v-if="loadingApplies" :rows="5" animated />
+            <el-table v-else :data="applies" empty-text="暂无待审核申请" style="width:100%">
               <el-table-column label="商品名称" min-width="180">
                 <template #default="{ row }">
                   <div>{{ row.itemTitle || ('商品 #' + row.itemId) }}</div>
@@ -99,7 +100,8 @@
               <span class="spacer"></span>
               <el-button size="small" round :loading="loadingUsers" @click="loadUsers">刷新</el-button>
             </div>
-            <el-table :data="users" v-loading="loadingUsers" empty-text="暂无用户" style="width:100%">
+            <el-skeleton v-if="loadingUsers" :rows="5" animated />
+            <el-table v-else :data="users" empty-text="暂无用户" style="width:100%">
               <el-table-column prop="id" label="ID" width="70" align="center"></el-table-column>
               <el-table-column prop="username" label="用户名" min-width="120"></el-table-column>
               <el-table-column prop="realName" label="真实姓名" min-width="100"></el-table-column>

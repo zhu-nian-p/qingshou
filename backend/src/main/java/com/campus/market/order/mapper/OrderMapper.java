@@ -25,12 +25,19 @@ public interface OrderMapper extends BaseMapper<Order> {
     int confirmBySeller(@Param("orderId") Long orderId, @Param("sellerId") Long sellerId);
 
     /**
-     * 买家确认完成：0=待面交 -> 1=已完成。
-     * 条件里带上 buyer_id 和原状态，保证只有买家能点、且只能点一次。
+     * 买家确认面交：0=待面交 -> 4=待卖家确认完成。
+     * 只改订单状态，不改商品、不加信用分，等卖家确认后才真正完成。
+     */
+    @Update("UPDATE `order` SET status = 4 "
+            + "WHERE id = #{orderId} AND buyer_id = #{buyerId} AND status = 0")
+    int buyerConfirmMeet(@Param("orderId") Long orderId, @Param("buyerId") Long buyerId);
+
+    /**
+     * 卖家确认完成：4=待卖家确认完成 -> 1=已完成。
      */
     @Update("UPDATE `order` SET status = 1 "
-            + "WHERE id = #{orderId} AND buyer_id = #{buyerId} AND status = 0")
-    int completeByBuyer(@Param("orderId") Long orderId, @Param("buyerId") Long buyerId);
+            + "WHERE id = #{orderId} AND seller_id = #{sellerId} AND status = 4")
+    int sellerConfirmComplete(@Param("orderId") Long orderId, @Param("sellerId") Long sellerId);
 
     /**
      * 卖家拒绝接单：3=待卖家确认 或 0=待面交 -> 2=已取消。
