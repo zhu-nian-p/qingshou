@@ -16,6 +16,7 @@ import com.campus.market.security.UserContext;
 import com.campus.market.user.entity.User;
 import com.campus.market.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ItemService {
@@ -36,6 +38,7 @@ public class ItemService {
 
     private final ItemMapper itemMapper;
     private final UserMapper userMapper;
+    private final ItemListCacheService cacheService;
 
     /**
      * 发布商品。sellerId 只从 JWT 上下文取，前端传了也不认。
@@ -64,6 +67,7 @@ public class ItemService {
 
         // 重新查一次，拿到数据库默认生成的 create_time
         Item saved = itemMapper.selectById(item.getId());
+        cacheService.evictAll();
         return new PublishItemResponse(
                 saved.getId(),
                 saved.getTitle(),
@@ -92,6 +96,22 @@ public class ItemService {
         long current = Math.max(1, page);
         long pageSize = Math.min(Math.max(1, size), 50);
 
+        // 1. 先查 Redis；空结果也会被缓存 60 秒，挡住重复的穿透请求
+        PageResult<ItemListVO> cached = cacheService.get(keyword, category, campus, sort, current, pageSize);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 2. 缓存未命中：走 MySQL 分页查询
+        PageResult<ItemListVO> result = queryFromDb(keyword, category, campus, sort, current, pageSize);
+
+        cacheService.put(keyword, category, campus, sort, current, pageSize, result);
+        return result;
+    }
+
+    /** MySQL 分页查询（ES 不可用时的回退路径） */
+    private PageResult<ItemListVO> queryFromDb(String keyword, String category, String campus,
+                                               String sort, long current, long pageSize) {
         LambdaQueryWrapper<Item> query = new LambdaQueryWrapper<>();
         query.eq(Item::getStatus, STATUS_ON_SALE);
 
@@ -154,6 +174,7 @@ public class ItemService {
         item.setContactInfo(trimToNull(request.getContactInfo()));
         item.setImageUrl(trimToNull(request.getImageUrl()));
         itemMapper.updateById(item);
+        cacheService.evictAll();
 
         return detail(id);
     }
@@ -180,6 +201,7 @@ public class ItemService {
         if (updated != 1) {
             throw BusinessException.badRequest("商品状态已变化，请刷新后重试");
         }
+        cacheService.evictAll();
         return detail(id);
     }
 

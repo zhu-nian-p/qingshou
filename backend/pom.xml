@@ -59,7 +59,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Redis。本模块只配好连接，后续缓存、置顶等功能再使用 -->
+        <!-- Redis：首页商品列表缓存 + 验证码等 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>

@@ -6,6 +6,7 @@ import com.campus.market.common.BusinessException;
 import com.campus.market.item.dto.ItemListVO;
 import com.campus.market.item.entity.Item;
 import com.campus.market.item.mapper.ItemMapper;
+import com.campus.market.item.service.ItemListCacheService;
 import com.campus.market.user.entity.User;
 import com.campus.market.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class AdminService {
 
     private final UserMapper userMapper;
     private final ItemMapper itemMapper;
+    private final ItemListCacheService cacheService;
 
     /** 置顶商品，days 天后自动过期 */
     public ItemListVO topItem(Long adminId, Long itemId, int days) {
@@ -41,6 +43,7 @@ public class AdminService {
         int validDays = Math.max(1, Math.min(days, 365));
         LocalDateTime expireTime = LocalDateTime.now().plusDays(validDays);
         itemMapper.updateTop(itemId, 1, expireTime);
+        cacheService.evictAll();
         return toItemVO(itemMapper.selectById(itemId));
     }
 
@@ -52,6 +55,7 @@ public class AdminService {
             throw BusinessException.notFound("商品不存在");
         }
         itemMapper.updateTop(itemId, 0, null);
+        cacheService.evictAll();
         return toItemVO(itemMapper.selectById(itemId));
     }
 

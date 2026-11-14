@@ -5,6 +5,7 @@ import com.campus.market.admin.service.AdminService;
 import com.campus.market.common.BusinessException;
 import com.campus.market.item.entity.Item;
 import com.campus.market.item.mapper.ItemMapper;
+import com.campus.market.item.service.ItemListCacheService;
 import com.campus.market.topup.dto.ApplyTopUpRequest;
 import com.campus.market.topup.dto.TopUpApplyVO;
 import com.campus.market.topup.entity.TopUpApply;
@@ -50,6 +51,7 @@ public class TopUpService {
     private final ItemMapper itemMapper;
     private final UserMapper userMapper;
     private final AdminService adminService;
+    private final ItemListCacheService cacheService;
 
     /** 卖家提交置顶申请，生成待审核记录 */
     public TopUpApplyVO apply(Long userId, ApplyTopUpRequest request) {
@@ -109,6 +111,7 @@ public class TopUpService {
 
         LocalDateTime expireTime = LocalDateTime.now().plusDays(apply.getDays());
         itemMapper.updateTop(apply.getItemId(), 1, expireTime);
+        cacheService.evictAll();
         log.info("管理员 {} 通过置顶申请 {}：商品 {} 置顶至 {}", adminId, applyId, apply.getItemId(), expireTime);
 
         return toVO(topUpApplyMapper.selectById(applyId), itemMapper.selectById(apply.getItemId()),

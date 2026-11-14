@@ -3,6 +3,7 @@ package com.campus.market.common;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -11,6 +12,7 @@ import java.util.List;
  * 另外带上 page/size/pages，方便前端做无限滚动时判断是否还有下一页。
  */
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class PageResult<T> {
 

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.campus.market.common.BusinessException;
 import com.campus.market.item.entity.Item;
 import com.campus.market.item.mapper.ItemMapper;
+import com.campus.market.item.service.ItemListCacheService;
 import com.campus.market.order.dto.CreateOrderRequest;
 import com.campus.market.order.dto.OrderVO;
 import com.campus.market.order.entity.Order;
@@ -40,6 +41,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final ItemMapper itemMapper;
     private final UserMapper userMapper;
+    private final ItemListCacheService cacheService;
 
     /**
      * 买家下单。
@@ -73,6 +75,7 @@ public class OrderService {
         order.setTradeLocation(request.getTradeLocation().trim());
         order.setStatus(STATUS_PENDING_SELLER);
         orderMapper.insert(order);
+        cacheService.evictAll();
 
         return toVO(orderMapper.selectById(order.getId()), item);
     }
@@ -129,6 +132,7 @@ public class OrderService {
         // 双方信用分 +1
         userMapper.addCreditScore(order.getBuyerId(), 1);
         userMapper.addCreditScore(order.getSellerId(), 1);
+        cacheService.evictAll();
 
         return toVO(orderMapper.selectById(orderId), itemMapper.selectById(order.getItemId()));
     }
@@ -158,6 +162,7 @@ public class OrderService {
         if (released != 1) {
             throw BusinessException.badRequest("商品状态异常，无法恢复在售");
         }
+        cacheService.evictAll();
 
         return toVO(orderMapper.selectById(orderId), itemMapper.selectById(order.getItemId()));
     }
@@ -177,6 +182,8 @@ public class OrderService {
         if (released != 1) {
             // 商品可能已被其他流程处理，订单取消仍然生效，记录日志即可
             log.warn("超时取消订单 {} 成功，但商品 {} 未能恢复在售", order.getId(), order.getItemId());
+        } else {
+            cacheService.evictAll();
         }
         return true;
     }

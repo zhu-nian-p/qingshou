@@ -125,6 +125,17 @@ campus-market/
 仓库默认数据库为干净的演示数据：4 件在售商品（item 3 置顶中）、4 个测试账号、0 订单、0 置顶申请、0 评价。
 所有业务流程（注册 → 发布 → 浏览 → 下单 → 卖家确认 → 面交完成/拒绝 → 评价 → 置顶申请 → 管理员审核）均可直接用上述账号跑通。
 
+## Redis 商品列表缓存
+
+首页 `/api/item/list` 已接入 Redis 缓存（2 核 4G 部署不引入 Elasticsearch，搜索仍走 MySQL）：
+
+- **缓存 key**：`qingshou:item:list:{md5(版本号|keyword|category|campus|sort|page|size)}`
+- **TTL**：正常结果 5 分钟 + 随机 0~60 秒（防雪崩）；空结果固定 60 秒（防穿透）
+- **失效策略**：发布、编辑、下架、下单、完成交易、卖家拒单、超时取消、管理员置顶/取消置顶、置顶审核通过等写操作都会执行 `INCR qingshou:item:list:version`，所有旧 key 立即逻辑失效
+- **降级**：Redis 异常时自动回退 MySQL 查询，接口不报错
+
+实测结果：首次请求回源并生成缓存（TTL≈346s），二次请求命中；空结果缓存 TTL≈59s；编辑商品后版本号自增、列表立即返回新价格。
+
 ## 关键配置
 
 `backend/src/main/resources/application.yml`：
