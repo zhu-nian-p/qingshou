@@ -36,8 +36,20 @@
         </div>
 
         <div class="field">
-          <label>商品描述</label>
+          <div class="field-head">
+            <label>商品描述</label>
+            <el-button
+              class="ai-btn"
+              size="small"
+              round
+              :loading="aiLoading"
+              :disabled="aiLoading"
+              @click="generateDesc">
+              ✨ {{ aiLoading ? '正在生成中...' : 'AI帮我写文案' }}
+            </el-button>
+          </div>
           <el-input v-model="form.description" type="textarea" :rows="4" maxlength="2000" show-word-limit placeholder="成色、入手时间、使用情况、瑕疵等，写清楚更好卖～"></el-input>
+          <div class="ai-tip" v-if="aiGenerated">✨ 已根据标题和分类生成文案，可直接修改后再发布</div>
         </div>
 
         <div class="grid-2">
@@ -87,6 +99,8 @@ const router = useRouter();
 const categories = ['数码', '书籍', '生活用品', '运动户外', '其他'];
 const campuses = ['上海路', '前湖'];
 const submitting = ref(false);
+const aiLoading = ref(false);
+const aiGenerated = ref(false);
 const form = reactive({
   title: '', description: '', price: null,
   category: '', campus: '前湖', contactInfo: '', imageUrl: ''
@@ -116,6 +130,32 @@ async function uploadImage({ file }) {
     ElMessage.success('图片上传成功');
   } catch (e) {
     ElMessage.error(e.message || '图片上传失败');
+  }
+}
+
+/** AI 生成文案：标题 + 分类作为提示词 */
+async function generateDesc() {
+  if (aiLoading.value) return;
+  const title = form.title.trim();
+  if (!title) {
+    ElMessage.warning('请先填写商品标题，AI 需要它来写文案');
+    return;
+  }
+  const keyword = (title + (form.category ? ' ' + form.category : '')).slice(0, 50);
+  aiLoading.value = true;
+  try {
+    const data = await api.post('/api/ai/generate-desc', { keyword });
+    form.description = data.description || '';
+    aiGenerated.value = true;
+    if (data.mock) {
+      ElMessage.info('未配置 AI Key，已使用本地模拟文案');
+    } else {
+      ElMessage.success('AI 文案生成成功');
+    }
+  } catch (e) {
+    ElMessage.error(e.message || '生成失败，请稍后重试');
+  } finally {
+    aiLoading.value = false;
   }
 }
 
@@ -161,6 +201,24 @@ async function submit() {
 .form-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 18px 16px; box-shadow: 0 10px 26px rgba(13,148,136,.06); }
 .field { margin-bottom: 18px; }
 .field > label { display: block; font-size: 13px; font-weight: 700; color: #36635c; margin-bottom: 8px; }
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.field-head > label { font-size: 13px; font-weight: 700; color: #36635c; }
+.ai-btn {
+  --el-button-bg-color: #f0fdfa;
+  --el-button-border-color: #b8f0e6;
+  --el-button-text-color: #0f766e;
+  --el-button-hover-bg-color: #e6fffa;
+  --el-button-hover-border-color: #14b8a6;
+  --el-button-hover-text-color: #0f766e;
+  font-weight: 600;
+}
+.ai-tip { margin-top: 6px; font-size: 12px; color: #0d9488; }
 .field .req { color: #ef4444; margin-left: 2px; }
 .tip { font-size: 11px; color: #9bb5b0; margin-top: 6px; }
 .upload-box {

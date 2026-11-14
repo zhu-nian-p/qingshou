@@ -53,6 +53,18 @@
   .field > label {
     display: block; font-size: 13px; font-weight: 700; color: #36635c; margin-bottom: 8px;
   }
+  .field-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 8px;
+  }
+  .field-head > label { font-size: 13px; font-weight: 700; color: #36635c; }
+  .ai-btn {
+    --el-button-bg-color: #f0fdfa;
+    --el-button-border-color: #b8f0e6;
+    --el-button-text-color: #0f766e;
+    font-weight: 600;
+  }
+  .ai-tip { margin-top: 6px; font-size: 12px; color: #0d9488; }
   .field > label .req { color: #ef4444; margin-left: 2px; }
   .field .el-input__wrapper, .field .el-textarea__inner { border-radius: 12px; }
   .tip { font-size: 11px; color: #9bb5b0; margin-top: 6px; }
@@ -142,9 +154,16 @@
 
       <!-- 描述 -->
       <div class="field">
-        <label>商品描述</label>
+        <div class="field-head">
+          <label>商品描述</label>
+          <el-button class="ai-btn" size="small" round :loading="aiLoading" :disabled="aiLoading"
+                     @click="generateDesc">
+            ✨ {{ aiLoading ? '正在生成中...' : 'AI帮我写文案' }}
+          </el-button>
+        </div>
         <el-input v-model="form.description" type="textarea" :rows="4" maxlength="2000" show-word-limit
                   placeholder="成色、入手时间、使用情况、瑕疵等，写清楚更好卖～"></el-input>
+        <div class="ai-tip" v-if="aiGenerated">✨ 已根据标题和分类生成文案，可直接修改后再发布</div>
       </div>
 
       <!-- 价格 / 分类 / 校区 -->
@@ -211,6 +230,46 @@
         category: '', campus: '前湖', contactInfo: '', imageUrl: ''
       });
       const submitting = ref(false);
+      const aiLoading = ref(false);
+      const aiGenerated = ref(false);
+
+      /** AI 生成文案：标题 + 分类作为提示词 */
+      async function generateDesc() {
+        if (aiLoading.value) return;
+        const title = form.title.trim();
+        if (!title) {
+          ElementPlus.ElMessage.warning('请先填写商品标题，AI 需要它来写文案');
+          return;
+        }
+        const keyword = (title + (form.category ? ' ' + form.category : '')).slice(0, 50);
+        aiLoading.value = true;
+        try {
+          const res = await fetch(API_BASE + '/api/ai/generate-desc', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + (localStorage.getItem(TOKEN_KEY) || '')
+            },
+            body: JSON.stringify({ keyword })
+          });
+          if (res.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            location.replace('login.html');
+            return;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || json.code !== 200) {
+            throw new Error(json.message || '生成失败');
+          }
+          form.description = json.data.description || '';
+          aiGenerated.value = true;
+          ElementPlus.ElMessage.success(json.data.mock ? '未配置 AI Key，已使用本地模拟文案' : 'AI 文案生成成功');
+        } catch (e) {
+          ElementPlus.ElMessage.error(e.message || '生成失败，请稍后重试');
+        } finally {
+          aiLoading.value = false;
+        }
+      }
 
       function goBack() {
         if (history.length > 1) history.back();
@@ -306,7 +365,7 @@
       });
 
       return {
-        form, categories, campuses, submitting,
+        form, categories, campuses, submitting, aiLoading, aiGenerated, generateDesc,
         uploadUrl, uploadHeaders, beforeUpload, onUploadSuccess, onUploadError,
         removeImage, imgSrc, submit, goBack
       };

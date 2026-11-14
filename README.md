@@ -202,6 +202,19 @@ public Result<?> publish(...) { ... }
 
 实测：今日发布 1 件、完成 1 笔 50 元订单后，接口返回 `todayPublishedItems=1`、`completedAmount=50.00`，趋势图中 11-12 为 4、11-14 为 1。
 
+## AI 生成商品文案
+
+发布页（Vite `PublishView.vue` 与旧版 `publish.html`）在「商品描述」右上角提供 **✨ AI帮我写文案** 按钮：
+
+1. 取【商品标题】+【分类】拼成关键词（最多 50 字）
+2. 调用 `POST /api/ai/generate-desc`（需登录）
+3. 请求期间按钮显示「正在生成中...」并禁用，防止重复点击
+4. 返回后自动填入描述框，并提示「已根据标题和分类生成文案」
+5. 未配置 `DEEPSEEK_API_KEY` 时后端返回「模拟文案」，前端会提示 mock 状态
+6. 标题为空时不会发请求，直接提示先填写标题
+
+![AI 文案](<docs/screenshots/publish-ai.png>)
+
 ## 关键配置
 
 `backend/src/main/resources/application.yml`：
