@@ -190,10 +190,19 @@ const wantText = computed(() => {
   if (item.value.status === 2) return '已售出';
   return '已下架';
 });
+/** 根据联系方式识别渠道：QQ / 微信 / 手机号 */
+function contactChannel(contact) {
+  const c = (contact || '').trim();
+  if (/^(qq|扣扣)\s*[:：]?/i.test(c)) return 'QQ';
+  if (/^(wx|wechat|微信)\s*[:：]?/i.test(c)) return '微信';
+  if (/^1[3-9]\d{9}$/.test(c.replace(/[\s-]/g, ''))) return '手机号';
+  return '';
+}
+
 const copyLabel = computed(() => {
-  const c = contactInfo.value || '';
-  if (/qq/i.test(c)) return '复制QQ号';
-  if (/微信|wx/i.test(c)) return '复制微信号';
+  const channel = contactChannel(contactInfo.value);
+  if (channel === 'QQ') return '复制QQ号';
+  if (channel === '微信') return '复制微信号';
   return '一键复制';
 });
 const avgRating = computed(() => {
@@ -291,9 +300,14 @@ async function copyContact() {
   try {
     // 完整联系方式只在点击复制时获取，且后端限制 1 分钟 3 次
     const data = await api.get('/api/item/' + itemId + '/contact');
-    const ok = await copyText(data.contactInfo || '');
-    if (ok) ElMessage.success('复制成功，快去微信添加好友吧！');
-    else ElMessage.error('复制失败，请手动长按复制');
+    const contact = data.contactInfo || '';
+    const ok = await copyText(contact);
+    if (!ok) {
+      ElMessage.error('复制失败，请手动长按复制');
+      return;
+    }
+    // 提示语保持通用，避免 QQ/微信 渠道对不上
+    ElMessage.success('复制成功，快去添加好友吧！');
   } catch (e) {
     ElMessage.error(e.message || '获取完整联系方式失败，请稍后再试');
   }
