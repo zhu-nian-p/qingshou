@@ -50,16 +50,16 @@
         </div>
       </div>
 
-      <div class="seller">
+      <div class="seller-card">
         <div class="avatar">{{ sellerAvatar }}</div>
-        <div class="seller-info">
-          <div class="seller-name">
-            {{ item.sellerName || ('用户' + item.sellerId) }}
+        <div class="seller-card-info">
+          <div class="seller-card-name">
+            <span class="seller-card-name-text">{{ item.sellerName || ('用户' + item.sellerId) }}</span>
             <span class="credit-tag" v-if="(item.sellerCredit || 0) >= 110">🏅 高信誉</span>
           </div>
-          <div class="seller-sub">校园认证卖家 · 支持面交</div>
+          <div class="seller-card-sub">校园认证卖家 · 支持面交</div>
         </div>
-        <div class="credit-num">
+        <div class="seller-card-credit">
           <b>{{ item.sellerCredit ?? '—' }}</b>
           <span>信用分</span>
         </div>
@@ -354,14 +354,25 @@ async function submitOrder() {
 .report-link:hover { color: #dc2626; }
 .dialog-field { margin-bottom: 14px; }
 .dialog-field > label { display: block; font-size: 12px; font-weight: 600; color: #36635c; margin-bottom: 6px; }
-.seller { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; margin-top: 14px; }
-.seller-info { min-width: 0; flex: 1; }
-.seller-name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.credit-tag { font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #fff7ed; color: #b45309; border: 1px solid #fed7aa; }
-.seller-sub { font-size: 12px; color: #8aa; margin-top: 3px; }
-.credit-num { text-align: center; flex: 0 0 auto; }
-.credit-num b { display: block; font-size: 20px; color: var(--teal-dark); }
-.credit-num span { font-size: 11px; color: #8aa; }
+/* 卖家卡片：独立类名，避免与首页商品卡片的 .seller 冲突 */
+.seller-card {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: #fff; border: 1px solid var(--line); border-radius: 18px;
+  padding: 14px 16px; margin-top: 14px;
+}
+.seller-card-info { min-width: 0; flex: 1; }
+.seller-card-name {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
+  font-size: 15px; font-weight: 700; min-width: 0;
+}
+.seller-card-name-text {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.credit-tag { flex: 0 0 auto; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #fff7ed; color: #b45309; border: 1px solid #fed7aa; }
+.seller-card-sub { font-size: 12px; color: #8aa; margin-top: 3px; line-height: 1.5; }
+.seller-card-credit { text-align: center; flex: 0 0 auto; min-width: 42px; }
+.seller-card-credit b { display: block; font-size: 20px; line-height: 1.2; color: var(--teal-dark); }
+.seller-card-credit span { font-size: 11px; color: #8aa; white-space: nowrap; }
 .review-count { font-weight: normal; color: #9bb5b0; font-size: 12px; }
 .no-review { font-size: 13px; color: #9bb5b0; padding: 6px 0 2px; }
 .review-summary { margin-bottom: 8px; }
