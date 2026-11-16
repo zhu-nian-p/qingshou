@@ -183,8 +183,8 @@ public class TopUpService {
         if (user != null) {
             String realName = user.getRealName();
             vo.setUserName(realName == null || realName.isBlank()
-                    ? user.getUsername()
-                    : realName + "（" + user.getUsername() + "）");
+                    ? user.getNickname()
+                    : realName + "（" + user.getNickname() + "）");
         }
         vo.setDays(apply.getDays());
         vo.setAmount(apply.getAmount());

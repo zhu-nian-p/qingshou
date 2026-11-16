@@ -29,14 +29,8 @@ public class UserService {
     private final EmailCodeService emailCodeService;
 
     public RegisterResponse register(RegisterRequest request) {
-        String username = request.getUsername().trim();
+        String nickname = request.getNickname().trim();
         String studentId = request.getStudentId().trim();
-
-        boolean usernameTaken = userMapper.exists(new LambdaQueryWrapper<User>()
-                .eq(User::getUsername, username));
-        if (usernameTaken) {
-            throw BusinessException.badRequest("用户名已被注册");
-        }
 
         boolean studentIdTaken = userMapper.exists(new LambdaQueryWrapper<User>()
                 .eq(User::getStudentId, studentId));
@@ -55,7 +49,7 @@ public class UserService {
         emailCodeService.verifyAndConsume(email, request.getEmailCode());
 
         User user = new User();
-        user.setUsername(username);
+        user.setNickname(nickname);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRealName(request.getRealName().trim());
         user.setStudentId(studentId);
@@ -65,42 +59,45 @@ public class UserService {
         user.setCreditScore(100);
         userMapper.insert(user);
 
-        return new RegisterResponse(user.getId(), user.getUsername());
+        return new RegisterResponse(user.getId(), user.getNickname());
     }
 
+    /** 学号 + 密码登录；昵称仅用于展示，不再参与登录 */
     public LoginResponse login(LoginRequest request) {
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
-                .eq(User::getUsername, request.getUsername().trim()));
+                .eq(User::getStudentId, request.getStudentId().trim()));
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw BusinessException.unauthorized("用户名或密码错误");
+            throw BusinessException.unauthorized("学号或密码错误");
         }
         if (user.getStatus() != null && user.getStatus() == 1) {
             throw BusinessException.forbidden("账号已被封禁");
         }
 
-        String token = jwtUtil.createToken(user.getId(), user.getUsername());
-        return new LoginResponse(token, user.getId(), user.getUsername(), user.getRealName(), user.getRole());
+        String token = jwtUtil.createToken(user.getId(), user.getNickname());
+        return new LoginResponse(token, user.getId(), user.getNickname(),
+                user.getStudentId(), user.getRealName(), user.getRole());
     }
 
-    /** 忘记密码：必须同时匹配「用户名 + 邮箱 + 验证码」，防止只凭邮箱接管账号 */
+    /** 忘记密码：必须同时匹配「学号 + 邮箱 + 验证码」，防止只凭邮箱接管账号 */
     public void resetPassword(ResetPasswordRequest request) {
         String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
-        String username = request.getUsername().trim();
+        String studentId = request.getStudentId().trim();
         List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>()
                 .eq(User::getSchoolEmail, email));
         if (users.isEmpty()) {
             throw BusinessException.badRequest("该邮箱尚未注册");
         }
         User user = users.stream()
-                .filter(u -> username.equals(u.getUsername()))
+                .filter(u -> studentId.equals(u.getStudentId()))
                 .findFirst()
-                .orElseThrow(() -> BusinessException.badRequest("用户名与邮箱不匹配"));
+                .orElseThrow(() -> BusinessException.badRequest("学号与邮箱不匹配"));
         // 验证码一次性使用，校验通过即删除
         emailCodeService.verifyAndConsumeReset(email, request.getEmailCode());
         userMapper.updatePassword(user.getId(), passwordEncoder.encode(request.getNewPassword()));
     }
 
-    public UserProfileVO currentProfile() {        Long userId = UserContext.get();
+    public UserProfileVO currentProfile() {
+        Long userId = UserContext.get();
         if (userId == null) {
             throw BusinessException.unauthorized("未登录或登录已过期");
         }
@@ -111,7 +108,7 @@ public class UserService {
 
         UserProfileVO profile = new UserProfileVO();
         profile.setId(user.getId());
-        profile.setUsername(user.getUsername());
+        profile.setNickname(user.getNickname());
         profile.setRealName(user.getRealName());
         profile.setStudentId(user.getStudentId());
         profile.setSchoolEmail(user.getSchoolEmail());

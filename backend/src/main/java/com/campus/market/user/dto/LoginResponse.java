@@ -12,7 +12,11 @@ public class LoginResponse {
 
     private Long userId;
 
-    private String username;
+    /** 昵称，用于前端展示 */
+    private String nickname;
+
+    /** 学号，登录账号 */
+    private String studentId;
 
     private String realName;
 

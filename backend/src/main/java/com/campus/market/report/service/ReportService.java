@@ -171,11 +171,11 @@ public class ReportService {
             reporter = userMapper.selectById(report.getReporterId());
         }
         if (reporter != null) {
-            vo.setReporterName(reporter.getRealName() + "（" + reporter.getUsername() + "）");
+            vo.setReporterName(reporter.getRealName() + "（" + reporter.getNickname() + "）");
         }
         User target = report.getTargetUserId() == null ? null : userMap.get(report.getTargetUserId());
         if (target != null) {
-            vo.setTargetUserName(target.getUsername());
+            vo.setTargetUserName(target.getNickname());
         }
         return vo;
     }

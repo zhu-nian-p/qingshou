@@ -28,7 +28,8 @@ export const useUserStore = defineStore('user', {
     isLoggedIn: (state) => !!state.token,
     isAdmin: (state) => (state.profile?.role ?? state.user?.role) === 2,
     displayName: (state) =>
-      state.profile?.realName || state.user?.realName || state.user?.username || '青售用户',
+      state.profile?.nickname || state.user?.nickname
+      || state.profile?.realName || state.user?.realName || '青售用户',
     avatarText(state) {
       return String(this.displayName).slice(0, 1).toUpperCase();
     }
@@ -39,7 +40,8 @@ export const useUserStore = defineStore('user', {
       this.token = data.token;
       this.user = {
         userId: data.userId,
-        username: data.username,
+        nickname: data.nickname,
+        studentId: data.studentId,
         realName: data.realName,
         role: data.role
       };
@@ -47,8 +49,8 @@ export const useUserStore = defineStore('user', {
       persistUser(this.user);
     },
 
-    async login(username, password) {
-      const data = await api.post('/api/user/login', { username, password });
+    async login(studentId, password) {
+      const data = await api.post('/api/user/login', { studentId, password });
       this.setSession(data);
       return data;
     },
@@ -60,7 +62,8 @@ export const useUserStore = defineStore('user', {
         this.user = {
           ...(this.user || {}),
           userId: profile.id,
-          username: profile.username,
+          nickname: profile.nickname,
+          studentId: profile.studentId,
           realName: profile.realName,
           role: profile.role
         };

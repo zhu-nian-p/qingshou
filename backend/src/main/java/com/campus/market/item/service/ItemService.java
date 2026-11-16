@@ -221,7 +221,7 @@ public class ItemService {
 
         User seller = userMapper.selectById(item.getSellerId());
         if (seller != null) {
-            vo.setSellerName(seller.getUsername());
+            vo.setSellerName(seller.getNickname());
             vo.setSellerCredit(seller.getCreditScore());
         }
 
@@ -308,7 +308,7 @@ public class ItemService {
             ItemListVO vo = toListVO(item);
             User seller = sellerMap.get(item.getSellerId());
             if (seller != null) {
-                vo.setSellerName(seller.getUsername());
+                vo.setSellerName(seller.getNickname());
                 vo.setSellerCredit(seller.getCreditScore());
             }
             return vo;

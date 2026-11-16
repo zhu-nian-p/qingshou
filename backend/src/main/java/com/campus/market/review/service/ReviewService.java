@@ -101,7 +101,7 @@ public class ReviewService {
         Map<Long, String> names = userMapper.selectList(new LambdaQueryWrapper<User>()
                         .in(User::getId, reviewerIds))
                 .stream()
-                .collect(Collectors.toMap(User::getId, User::getUsername, (a, b) -> a));
+                .collect(Collectors.toMap(User::getId, User::getNickname, (a, b) -> a));
 
         return reviews.stream().map(review -> {
             ReviewVO vo = toVO(review, null);

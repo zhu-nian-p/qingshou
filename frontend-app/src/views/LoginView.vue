@@ -13,8 +13,8 @@
 
       <div v-if="tab === 'login'">
         <div class="field">
-          <label>用户名</label>
-          <el-input v-model="loginForm.username" size="large" placeholder="请输入用户名" clearable @keyup.enter="doLogin"></el-input>
+          <label>学号</label>
+          <el-input v-model="loginForm.studentId" size="large" placeholder="请输入学号" maxlength="9" clearable @keyup.enter="doLogin"></el-input>
         </div>
         <div class="field">
           <label>密码</label>
@@ -27,8 +27,8 @@
 
       <div v-else>
         <div class="field">
-          <label>用户名</label>
-          <el-input v-model="regForm.username" size="large" placeholder="4-20 位字母、数字或下划线" clearable></el-input>
+          <label>昵称</label>
+          <el-input v-model="regForm.nickname" size="large" placeholder="2-10 个字符，用于展示" maxlength="10" clearable></el-input>
         </div>
         <div class="field">
           <label>密码</label>
@@ -44,7 +44,7 @@
         </div>
         <div class="field">
           <label>学校邮箱</label>
-          <el-input v-model="regForm.schoolEmail" size="large" placeholder="如：20240001@xxx.edu.cn" clearable></el-input>
+          <el-input v-model="regForm.schoolEmail" size="large" placeholder="如：20240001@stu.nchu.edu.cn" clearable></el-input>
         </div>
         <div class="field">
           <label>邮箱验证码</label>
@@ -72,12 +72,12 @@
 
     <el-dialog v-model="resetVisible" title="重置密码" width="380px" align-center>
       <div class="field">
-        <label>用户名</label>
-        <el-input v-model="resetForm.username" size="large" placeholder="请输入注册时的用户名" clearable></el-input>
+        <label>学号</label>
+        <el-input v-model="resetForm.studentId" size="large" placeholder="请输入注册学号" maxlength="9" clearable></el-input>
       </div>
       <div class="field">
         <label>学校邮箱</label>
-        <el-input v-model="resetForm.email" size="large" placeholder="如：20240001@xxx.edu.cn" clearable></el-input>
+        <el-input v-model="resetForm.email" size="large" placeholder="如：20240001@stu.nchu.edu.cn" clearable></el-input>
       </div>
       <div class="field">
         <label>邮箱验证码</label>
@@ -126,7 +126,7 @@ import { api } from '@/api/http';
 import { useUserStore } from '@/stores/user';
 import { USER_AGREEMENT, PRIVACY_POLICY, DISCLAIMER } from '@/constants/legal';
 
-const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.edu\.cn$/;
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@stu\.nchu\.edu\.cn$/;
 const router = useRouter();
 const route = useRoute();
 const user = useUserStore();
@@ -138,15 +138,15 @@ const resetCountdown = ref(0);
 let timer = null;
 let resetTimer = null;
 
-const loginForm = reactive({ username: '', password: '' });
+const loginForm = reactive({ studentId: '', password: '' });
 const regForm = reactive({
-  username: '', password: '', realName: '',
+  nickname: '', password: '', realName: '',
   studentId: '', schoolEmail: '', emailCode: ''
 });
 
 const resetVisible = ref(false);
 const resetLoading = ref(false);
-const resetForm = reactive({ username: '', email: '', emailCode: '', newPassword: '', confirmPassword: '' });
+const resetForm = reactive({ studentId: '', email: '', emailCode: '', newPassword: '', confirmPassword: '' });
 const agree = ref(false);
 const agreementVisible = ref(false);
 const privacyVisible = ref(false);
@@ -183,7 +183,7 @@ async function sendCode() {
   if (countdown.value > 0) return;
   const email = (regForm.schoolEmail || '').trim();
   if (!EMAIL_RE.test(email)) {
-    ElMessage.warning('请输入 .edu.cn 结尾的学校邮箱');
+    ElMessage.warning('仅支持 @stu.nchu.edu.cn 学校邮箱');
     return;
   }
   try {
@@ -196,13 +196,13 @@ async function sendCode() {
 }
 
 async function doLogin() {
-  if (!loginForm.username.trim() || !loginForm.password) {
-    ElMessage.warning('请输入用户名和密码');
+  if (!/^\d{8,9}$/.test(loginForm.studentId.trim()) || !loginForm.password) {
+    ElMessage.warning('请输入学号和密码');
     return;
   }
   loading.value = true;
   try {
-    await user.login(loginForm.username.trim(), loginForm.password);
+    await user.login(loginForm.studentId.trim(), loginForm.password);
     ElMessage.success('登录成功，正在进入青售…');
     router.push(route.query.redirect || '/');
   } catch (e) {
@@ -214,15 +214,15 @@ async function doLogin() {
 
 async function doRegister() {
   const f = regForm;
-  if (!/^[A-Za-z0-9_]{4,20}$/.test(f.username.trim())) {
-    return ElMessage.warning('用户名需为 4-20 位字母、数字或下划线');
+  if (!f.nickname || f.nickname.trim().length < 2 || f.nickname.trim().length > 10) {
+    return ElMessage.warning('昵称长度需为 2-10 个字符');
   }
   if (!f.password || f.password.length < 6 || f.password.length > 32) {
     return ElMessage.warning('密码长度需为 6-32 位');
   }
   if (!f.realName.trim()) return ElMessage.warning('请填写真实姓名');
   if (!/^\d{8,9}$/.test(f.studentId.trim())) return ElMessage.warning('学号必须是 8-9 位数字');
-  if (!EMAIL_RE.test(f.schoolEmail.trim())) return ElMessage.warning('请使用 .edu.cn 结尾的学校邮箱');
+  if (!EMAIL_RE.test(f.schoolEmail.trim())) return ElMessage.warning('仅支持 @stu.nchu.edu.cn 学校邮箱');
   if (!/^\d{6}$/.test(f.emailCode.trim())) return ElMessage.warning('请输入 6 位邮箱验证码');
   if (!agree.value) {
     return ElMessage.warning('请先阅读并同意《用户协议》和《隐私政策》');
@@ -231,14 +231,14 @@ async function doRegister() {
   loading.value = true;
   try {
     await api.post('/api/user/register', {
-      username: f.username.trim(),
+      nickname: f.nickname.trim(),
       password: f.password,
       realName: f.realName.trim(),
       studentId: f.studentId.trim(),
       schoolEmail: f.schoolEmail.trim(),
       emailCode: f.emailCode.trim()
     });
-    await user.login(f.username.trim(), f.password);
+    await user.login(f.studentId.trim(), f.password);
     ElMessage.success('注册成功，正在进入青售…');
     router.push('/');
   } catch (e) {
@@ -252,7 +252,7 @@ async function sendResetCode() {
   if (resetCountdown.value > 0) return;
   const email = (resetForm.email || '').trim();
   if (!EMAIL_RE.test(email)) {
-    ElMessage.warning('请输入 .edu.cn 结尾的学校邮箱');
+    ElMessage.warning('仅支持 @stu.nchu.edu.cn 学校邮箱');
     return;
   }
   try {
@@ -266,8 +266,8 @@ async function sendResetCode() {
 
 async function submitReset() {
   const f = resetForm;
-  if (!f.username.trim()) return ElMessage.warning('请填写用户名');
-  if (!EMAIL_RE.test(f.email.trim())) return ElMessage.warning('请输入 .edu.cn 结尾的学校邮箱');
+  if (!/^\d{8,9}$/.test(f.studentId.trim())) return ElMessage.warning('学号必须是 8-9 位数字');
+  if (!EMAIL_RE.test(f.email.trim())) return ElMessage.warning('仅支持 @stu.nchu.edu.cn 学校邮箱');
   if (!/^\d{6}$/.test(f.emailCode.trim())) return ElMessage.warning('请输入 6 位邮箱验证码');
   if (!f.newPassword || f.newPassword.length < 6 || f.newPassword.length > 32) {
     return ElMessage.warning('新密码长度需为 6-32 位');
@@ -277,7 +277,7 @@ async function submitReset() {
   resetLoading.value = true;
   try {
     await api.post('/api/user/reset-password', {
-      username: f.username.trim(),
+      studentId: f.studentId.trim(),
       email: f.email.trim(),
       emailCode: f.emailCode.trim(),
       newPassword: f.newPassword

@@ -8,7 +8,7 @@ public class AdminUserVO {
 
     private Long id;
 
-    private String username;
+    private String nickname;
 
     private String realName;
 

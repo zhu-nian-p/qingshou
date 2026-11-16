@@ -33,7 +33,7 @@ USE `campus_market`;
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS `user` (
   `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '用户ID，主键，自增',
-  `username`      VARCHAR(50)     NOT NULL                COMMENT '登录用户名，全局唯一，建议 4-20 位字母/数字/下划线',
+  `nickname`      VARCHAR(50)     NOT NULL                COMMENT '昵称，用于前端展示；不参与登录，允许重复',
   `password`      VARCHAR(100)    NOT NULL                COMMENT '密码密文，使用 BCrypt 加密后入库（BCrypt 固定 60 字符，长度预留到 100 以便换算法）',
   `real_name`     VARCHAR(50)     NOT NULL                COMMENT '真实姓名，用于实名认证与线下面对面交易的双方核验',
   `student_id`    VARCHAR(20)     NOT NULL                COMMENT '学号，8-9 位纯数字，全局唯一，杜绝一人注册多个账号',
@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS `user` (
   `create_time`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
   `update_time`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间，任何字段被修改时自动刷新',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_user_username`   (`username`)    COMMENT '用户名唯一索引：登录账号不可重复',
-  UNIQUE KEY `uk_user_student_id` (`student_id`)  COMMENT '学号唯一索引：同一学号只能注册一次',
+  UNIQUE KEY `uk_user_student_id` (`student_id`)  COMMENT '学号唯一索引：登录账号，同一学号只能注册一次',
   UNIQUE KEY `uk_user_school_email` (`school_email`) COMMENT '学校邮箱唯一索引：防止同一邮箱注册多个账号、重置密码串号',
+  KEY `idx_user_nickname`         (`nickname`)     COMMENT '昵称普通索引：仅展示与搜索',
   KEY `idx_user_status`           (`status`)       COMMENT '后台按状态筛选（如列出封禁用户）',
   CONSTRAINT `chk_user_student_id` CHECK (REGEXP_LIKE(`student_id`, '^[0-9]{8,9}$')),
   CONSTRAINT `chk_user_status`     CHECK (`status` IN (0, 1))

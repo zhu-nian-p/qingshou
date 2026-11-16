@@ -62,8 +62,8 @@ public class EmailCodeService {
     private void send(String rawEmail, String codePrefix, String limitPrefix,
                       BiConsumer<String, String> sender) {
         String email = normalize(rawEmail);
-        if (!email.endsWith(".edu.cn")) {
-            throw BusinessException.badRequest("请使用 .edu.cn 结尾的学校邮箱");
+        if (!email.matches("^[a-z0-9._%+-]+@stu\\.nchu\\.edu\\.cn$")) {
+            throw BusinessException.badRequest("仅支持 @stu.nchu.edu.cn 学校邮箱");
         }
 
         Boolean acquired = redisTemplate.opsForValue()

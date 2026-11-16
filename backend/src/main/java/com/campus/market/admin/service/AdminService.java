@@ -132,7 +132,7 @@ public class AdminService {
     private AdminUserVO toUserVO(User user) {
         AdminUserVO vo = new AdminUserVO();
         vo.setId(user.getId());
-        vo.setUsername(user.getUsername());
+        vo.setNickname(user.getNickname());
         vo.setRealName(user.getRealName());
         vo.setStudentId(user.getStudentId());
         vo.setSchoolEmail(user.getSchoolEmail());

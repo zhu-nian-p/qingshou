@@ -9,7 +9,7 @@
           {{ profile.realName || '青售用户' }}
           <span class="role-tag" v-if="profile.role === 2">管理员</span>
         </div>
-        <div class="p-sub">@{{ profile.username || '—' }}</div>
+        <div class="p-sub">@{{ profile.nickname || '—' }}</div>
         <div class="p-meta">
           <span>学号 {{ profile.studentId || '—' }}</span>
           <span>{{ profile.schoolEmail || '未绑定邮箱' }}</span>
@@ -140,7 +140,7 @@ const segments = [
   { key: 'sold', label: '我卖出的' }
 ];
 
-const avatarText = computed(() => String(profile.value.realName || profile.value.username || '青').slice(0, 1).toUpperCase());
+const avatarText = computed(() => String(profile.value.realName || profile.value.nickname || '青').slice(0, 1).toUpperCase());
 const currentOrders = computed(() => (segment.value === 'bought' ? bought.value : sold.value));
 
 function orderGroup(status) {

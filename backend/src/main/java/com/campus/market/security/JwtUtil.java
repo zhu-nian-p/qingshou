@@ -27,11 +27,11 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(secretBytes);
     }
 
-    public String createToken(Long userId, String username) {
+    public String createToken(Long userId, String nickname) {
         Instant now = Instant.now();
         Instant expireAt = now.plus(properties.getExpireHours(), ChronoUnit.HOURS);
         return Jwts.builder()
-                .subject(username)
+                .subject(nickname)
                 .claim("uid", userId)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expireAt))

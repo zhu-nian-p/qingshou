@@ -5,7 +5,7 @@
       <div class="brand">青售</div>
       <span class="admin-badge">管理后台</span>
       <div class="top-right">
-        <span class="admin-name">{{ user.profile?.username || user.user?.username }}</span>
+        <span class="admin-name">{{ user.profile?.nickname || user.user?.nickname }}</span>
         <el-button size="small" round @click="logout">退出</el-button>
       </div>
     </header>
@@ -132,7 +132,7 @@
             <el-skeleton v-if="loadingUsers" :rows="5" animated />
             <el-table v-else :data="users" empty-text="暂无用户" style="width:100%">
               <el-table-column prop="id" label="ID" width="70" align="center"></el-table-column>
-              <el-table-column prop="username" label="用户名" min-width="120"></el-table-column>
+              <el-table-column prop="nickname" label="昵称" min-width="120"></el-table-column>
               <el-table-column prop="realName" label="真实姓名" min-width="100"></el-table-column>
               <el-table-column label="学号" min-width="110">
                 <template #default="{ row }"><span class="muted">{{ row.studentId || '—' }}</span></template>
@@ -379,10 +379,10 @@ async function postUserAction(id, action, successMsg) {
 
 async function ban(row) {
   if (row.role === 2) return ElMessage.warning('管理员账号不可封禁');
-  const name = row.realName || row.username;
+  const name = row.realName || row.nickname;
   try {
     await ElMessageBox.confirm(
-      `确认封禁用户「${name}（${row.username}）」？封禁后该用户无法登录和交易。`,
+      `确认封禁用户「${name}（${row.nickname}）」？封禁后该用户无法登录和交易。`,
       '封禁用户',
       { confirmButtonText: '确认封禁', cancelButtonText: '取消', type: 'warning' }
     );
@@ -393,10 +393,10 @@ async function ban(row) {
 }
 
 async function unban(row) {
-  const name = row.realName || row.username;
+  const name = row.realName || row.nickname;
   try {
     await ElMessageBox.confirm(
-      `确认解封用户「${name}（${row.username}）」？`,
+      `确认解封用户「${name}（${row.nickname}）」？`,
       '解封用户',
       { confirmButtonText: '确认解封', cancelButtonText: '取消', type: 'success' }
     );

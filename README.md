@@ -78,15 +78,16 @@ campus-market/
 
 ## 测试账号
 
-| 角色 | 账号 | 密码 | 说明 |
-|---|---|---|---|
-| 卖家 | alice01 | 123456 | 已发布 4 件商品，信用分 120（演示高信誉标签） |
-| 买家 | buyer01 | 123456 | 用于下单 / 完成交易 |
-| 买家 | buyer02 | 123456 | 用于测并发/抢单 |
-| 管理员 | admin01 | 123456 | role=2，唯一管理员；可置顶审核、举报处理、封禁用户 |
+| 角色 | 昵称 | 学号（登录账号） | 密码 | 说明 |
+|---|---|---|---|---|
+| 卖家 | alice01 | 202400001 | 123456 | 已发布 4 件商品，信用分 120（演示高信誉标签） |
+| 买家 | buyer01 | 20240001 | 123456 | 用于下单 / 完成交易 |
+| 买家 | buyer02 | 20240002 | 123456 | 用于测并发/抢单 |
+| 管理员 | admin01 | 20240000 | 123456 | role=2，唯一管理员；可置顶审核、举报处理、封禁用户 |
 
+> **登录方式**：学号 + 密码，昵称仅用于展示，不再参与登录。
 > 角色字段 `user.role`：**1=普通用户，2=管理员**。只有 admin01 能进入管理后台。
-> 注册新账号需要 `.edu.cn` 学校邮箱 + 邮箱验证码。
+> 注册新账号需要 **@stu.nchu.edu.cn** 学校邮箱 + 邮箱验证码，昵称限制 2-10 个字符。
 
 ## 页面地址
 
@@ -118,7 +119,7 @@ campus-market/
 | 项 | 实现 |
 |---|---|
 | 邮箱唯一 | `user.school_email` 唯一索引（迁移 010）；注册前检查邮箱是否已注册 |
-| 重置密码防接管 | 必须同时匹配「用户名 + 邮箱 + 验证码」，缺一不可 |
+| 重置密码防接管 | 必须同时匹配「学号 + 邮箱 + 验证码」，缺一不可 |
 | 双向确认交易 | `0 待面交 → 4 待卖家确认完成 → 1 已完成`；买家确认只改订单状态，**卖家确认后**才售出商品、双方 +1 信用分 |
 | 联系方式防爬 | 详情接口只返回掩码（如 `wx: xia***01`）；完整值走 `GET /api/item/{id}/contact`，`@RateLimit(60s, 3次)`，点击复制才请求 |
 | 上传配额 | 每用户最多 50 张（`file_upload` 表统计，超限 400） |
@@ -299,7 +300,7 @@ MAIL_AUTH_CODE=你的SMTP授权码
 
 | 模块 | 接口 |
 |---|---|
-| 用户 | `POST /api/user/send-code`（学校邮箱验证码）、`POST /api/user/register`（需 `emailCode`）、`POST /api/user/login`、`POST /api/user/send-reset-code`（忘记密码发码）、`POST /api/user/reset-password`（验证码重置）、`GET /api/user/me` |
+| 用户 | `POST /api/user/send-code`（南航邮箱验证码）、`POST /api/user/register`（昵称 2-10 + 学号 + 邮箱 + `emailCode`）、`POST /api/user/login`（`studentId` + `password`）、`POST /api/user/send-reset-code`（忘记密码发码）、`POST /api/user/reset-password`（学号 + 邮箱 + 验证码重置）、`GET /api/user/me` |
 | 个人中心 | `GET /api/user/me/items`、`GET /api/user/me/trades` |
 | 商品 | `POST /api/item`、`GET /api/item/list?page=1&size=10&keyword=&category=&campus=&sort=`（返回 records + total）、`GET /api/item/{id}`（联系方式仅掩码）、`GET /api/item/{id}/contact`（完整联系方式，60 秒 3 次）、`PUT /api/item/{id}`（卖家编辑）、`POST /api/item/{id}/offline`（卖家下架） |
 | 订单 | `POST /api/order`（每买家最多 3 笔进行中）、`POST /api/order/{id}/seller-confirm`、`POST /api/order/{id}/complete`（买家确认面交）、`POST /api/order/{id}/seller-complete`（卖家确认完成）、`POST /api/order/{id}/buyer-cancel`、`POST /api/order/{id}/seller-reject`、`GET /api/order/buyer`、`GET /api/order/seller` |
@@ -316,7 +317,7 @@ MAIL_AUTH_CODE=你的SMTP授权码
 
 | 路由 | 说明 |
 |---|---|
-| `/login` | 登录 / 注册 Tab；注册含学校邮箱验证码、协议勾选；忘记密码需用户名 + 邮箱 + 验证码 |
+| `/login` | 登录 / 注册 Tab；学号 + 密码登录；注册含昵称、南航邮箱验证码、协议勾选；忘记密码需学号 + 邮箱 + 验证码 |
 | `/` | 首页：搜索、校区筛选、骨架屏、无限滚动；商品卡片急售/高信誉标签 |
 | `/messages` | 消息（模拟数据） |
 | `/profile` | 我的：资料 / 信用分 / 我发布的（编辑、下架）/ 我买到的（确认完成、取消订单、评价）/ 我卖出的（同意、拒绝、确认完成） |
@@ -328,12 +329,12 @@ MAIL_AUTH_CODE=你的SMTP授权码
 
 ## 学校邮箱验证码注册
 
-1. `POST /api/user/send-code`，body `{"email":"学号@xxx.edu.cn"}`：
-   - 仅接受 `.edu.cn` 结尾邮箱
+1. `POST /api/user/send-code`，body `{"email":"学号@stu.nchu.edu.cn"}`：
+   - 仅接受 `@stu.nchu.edu.cn` 结尾的南航学生邮箱
    - 同一邮箱 1 分钟内只能发一次（Redis 限流，超限 429）
    - 6 位随机验证码，Redis 存 5 分钟
    - 由 QQ SMTP 发送，标题「【青售】您的注册验证码」，发件人「青售官方团队」
-2. `POST /api/user/register` 时带上 `schoolEmail` 和 `emailCode`：
+2. `POST /api/user/register` 时带上 `nickname`、`studentId`、`schoolEmail` 和 `emailCode`：
    - 校验通过后立即删除 Redis 中的验证码（一次性使用）
    - 错误或过期返回 400「验证码错误或已过期」
 
