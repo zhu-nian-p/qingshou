@@ -79,7 +79,11 @@ Set-Location (Join-Path $root 'backend')
 $exitCode = $LASTEXITCODE
 
 Write-Host ""
-if ($exitCode -ne 0) {
+if ($exitCode -eq -1) {
+    # Maven 把「Spring Boot 进程被终止」记为 -1：关闭窗口、Ctrl+C、stop-backend 都会这样
+    Write-Host "[已停止] 后端进程被终止（关闭了窗口或手动停止服务），这不是代码错误。" -ForegroundColor Yellow
+    Write-Host "       需要重新启动：双击 start-backend.cmd" -ForegroundColor Yellow
+} elseif ($exitCode -ne 0) {
     Write-Host "[失败] 启动失败，退出码 $exitCode" -ForegroundColor Red
     Write-Host "       完整日志: $log" -ForegroundColor Yellow
     Write-Host "       日志最后 30 行（把这段发给我即可定位）:" -ForegroundColor Yellow
