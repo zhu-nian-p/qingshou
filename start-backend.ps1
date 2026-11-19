@@ -1,4 +1,4 @@
-# 校园二手交易平台后端启动脚本
+﻿# 校园二手交易平台后端启动脚本
 # 由 start-backend.cmd 调用：预检查端口/依赖 -> 启动 Spring Boot -> 全量日志落盘
 $ErrorActionPreference = 'Continue'
 
