@@ -2,6 +2,15 @@
 setlocal
 cd /d "%~dp0frontend-app"
 
+rem If 5174 is already listening, the frontend is already running
+powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 5174 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+if not errorlevel 1 (
+  echo [INFO] Frontend is already running: http://localhost:5174
+  start "" http://localhost:5174
+  timeout /t 2 >nul
+  exit /b 0
+)
+
 rem Prefer the bundled Node runtime used by this project, fall back to system Node
 set "NODE_EXE="
 if exist "C:\Users\L\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe" set "NODE_EXE=C:\Users\L\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe"

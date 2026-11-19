@@ -1,4 +1,4 @@
-﻿# 校园二手交易平台后端启动脚本
+# 校园二手交易平台后端启动脚本
 # 由 start-backend.cmd 调用：预检查端口/依赖 -> 启动 Spring Boot -> 全量日志落盘
 $ErrorActionPreference = 'Continue'
 
@@ -51,12 +51,10 @@ Write-Host "============================================" -ForegroundColor Cyan
 # ---------- 1. 预检：8080 是否被占用 ----------
 $busy = Get-NetTCPConnection -State Listen -LocalPort 8080 -ErrorAction SilentlyContinue
 if ($busy) {
-    $owner = ($busy | Select-Object -First 1).OwningProcess
-    $proc = Get-Process -Id $owner -ErrorAction SilentlyContinue
-    Write-Host "[错误] 8080 端口已被占用，PID=$owner ($($proc.ProcessName))" -ForegroundColor Red
-    Write-Host "       多半是已经启动过一个实例。可运行 stop-backend.cmd 先停掉它。" -ForegroundColor Yellow
-    Read-Host "按回车键关闭窗口"
-    exit 1
+    Write-Host "[提示] 后端已经在运行（端口 8080），无需重复启动。" -ForegroundColor Green
+    Write-Host "       直接访问前端：http://localhost:5174" -ForegroundColor Green
+    Start-Sleep -Seconds 3
+    exit 0
 }
 
 # ---------- 2. 预检：MySQL / Redis 是否可连 ----------
