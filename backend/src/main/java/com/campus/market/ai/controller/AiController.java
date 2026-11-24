@@ -2,8 +2,12 @@ package com.campus.market.ai.controller;
 
 import com.campus.market.ai.dto.AiDescRequest;
 import com.campus.market.ai.dto.AiDescResponse;
+import com.campus.market.ai.dto.AiRiskRequest;
+import com.campus.market.ai.dto.AiRiskResponse;
+import com.campus.market.ai.service.AiRiskService;
 import com.campus.market.ai.service.AiService;
 import com.campus.market.common.Result;
+import com.campus.market.common.ratelimit.RateLimit;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,9 +25,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AiController {
 
     private final AiService aiService;
+    private final AiRiskService aiRiskService;
 
     @PostMapping("/generate-desc")
     public Result<AiDescResponse> generateDesc(@Valid @RequestBody AiDescRequest request) {
         return Result.success("青售提示：生成成功", aiService.generateDescription(request.getKeyword()));
+    }
+
+    /** 发布风险预检：HIGH 也返回 200，用 blocked=true 表示会被发布接口拦截 */
+    @RateLimit(time = 60, count = 10)
+    @PostMapping("/risk-check")
+    public Result<AiRiskResponse> riskCheck(@Valid @RequestBody AiRiskRequest request) {
+        return Result.success(aiRiskService.review(request));
     }
 }

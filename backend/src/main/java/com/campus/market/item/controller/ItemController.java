@@ -55,7 +55,8 @@ public class ItemController {
         return Result.success(itemService.list(keyword, category, campus, sort, page, size));
     }
 
-    /** 编辑在售商品（卖家本人） */
+    /** 编辑在售商品（卖家本人）；每分钟最多 10 次，防止反复编辑刷 AI 审核 */
+    @RateLimit(time = 60, count = 10)
     @PutMapping("/{id}")
     public Result<ItemDetailVO> update(@PathVariable Long id,
                                        @Valid @RequestBody ItemUpdateRequest request) {

@@ -54,6 +54,52 @@ app:
     - 假证
     - 刷单
     - 代考
+  # AI 风险审核的本地兜底词库（与 sensitive-words 独立）
+  # high 命中直接阻断发布/编辑；medium 只提示警告，不阻断
+  # 注意：high 必须覆盖 sensitive-words 的全部词，避免敏感词覆盖面下降
+  risk-keywords:
+    high:
+      prohibited-goods:
+        - 仿真枪
+        - 管制刀具
+        - 毒品
+        - 迷药
+        - 假证
+        - 身份证代办
+        - 银行卡出售
+        - 枪支
+        - 违禁
+      fraud:
+        - 诈骗
+        - 刷单
+        - 返利
+        - 解冻费
+        - 私下转账
+        - 先交定金
+        - 保证退款
+      ghostwriting:
+        - 代写
+        - 代考
+        - 包过
+        - 论文代写
+        - 答案出售
+      counterfeit:
+        - 高仿
+        - 复刻
+        - 假冒
+        - 山寨
+    medium:
+      off-platform:
+        - 站外交易
+        - 先付款
+        - 不走平台
+        - 微信转账
+      other:
+        - 押金
+        - 代购
+        - 内部渠道
+        - 账号共享
+        - 破解版
   # 每个用户最多上传 50 张图片（防刷接口打满磁盘）
   upload:
     max-per-user: 50
@@ -102,6 +148,12 @@ deepseek:
   api-key: ${DEEPSEEK_API_KEY:}
   base-url: https://api.deepseek.com
   model: deepseek-chat
+
+# AI 风险审核超时：失败后由本地关键词兜底，不重试
+ai:
+  risk:
+    connect-timeout-seconds: 2
+    read-timeout-seconds: 4
 
 # 置顶收费：阶梯定价（1天1元 / 7天5元 / 30天12元）
 # 金额只在 TopUpService 中按天数计算并落库，不接受前端传入的金额。

@@ -2,6 +2,10 @@ package com.campus.market.item.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.campus.market.ai.dto.AiRiskRequest;
+import com.campus.market.ai.dto.AiRiskResponse;
+import com.campus.market.ai.enums.RiskLevel;
+import com.campus.market.ai.service.AiRiskService;
 import com.campus.market.common.BusinessException;
 import com.campus.market.common.PageResult;
 import com.campus.market.common.SensitiveWordFilter;
@@ -20,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -40,6 +45,7 @@ public class ItemService {
     private final UserMapper userMapper;
     private final ItemListCacheService cacheService;
     private final SensitiveWordFilter sensitiveWordFilter;
+    private final AiRiskService aiRiskService;
 
     /**
      * 发布商品。sellerId 只从 JWT 上下文取，前端传了也不认。
@@ -48,6 +54,13 @@ public class ItemService {
         Long sellerId = UserContext.get();
         if (sellerId == null) {
             throw BusinessException.unauthorized("未登录或登录已过期");
+        }
+
+        // AI 风险审核：本地关键词优先，AI 做增强；HIGH 在入库前阻断
+        AiRiskResponse risk = reviewRisk(request.getTitle(), request.getDescription(),
+                request.getCategory(), request.getPrice());
+        if (risk.getRiskLevel() == RiskLevel.HIGH) {
+            throw BusinessException.badRequest(buildRiskMessage("发布内容存在高风险", risk));
         }
 
         // 标题、描述都要过敏感词
@@ -69,13 +82,18 @@ public class ItemService {
         // 重新查一次，拿到数据库默认生成的 create_time
         Item saved = itemMapper.selectById(item.getId());
         cacheService.evictAll();
+        List<String> riskWarnings = risk.getRiskLevel() == RiskLevel.MEDIUM
+                ? risk.getReasons()
+                : List.of();
         return new PublishItemResponse(
                 saved.getId(),
                 saved.getTitle(),
                 saved.getPrice(),
                 saved.getStatus(),
                 saved.getIsTop(),
-                saved.getCreateTime()
+                saved.getCreateTime(),
+                risk.getRiskLevel().name(),
+                riskWarnings
         );
     }
 
@@ -165,6 +183,13 @@ public class ItemService {
             throw BusinessException.badRequest("只有「在售」商品可以编辑");
         }
 
+        // AI 风险审核：编辑同样强制审核，HIGH 在写库前阻断
+        AiRiskResponse risk = reviewRisk(request.getTitle(), request.getDescription(),
+                request.getCategory(), request.getPrice());
+        if (risk.getRiskLevel() == RiskLevel.HIGH) {
+            throw BusinessException.badRequest(buildRiskMessage("修改内容存在高风险", risk));
+        }
+
         sensitiveWordFilter.check(request.getTitle(), request.getDescription());
 
         item.setTitle(request.getTitle().trim());
@@ -172,7 +197,10 @@ public class ItemService {
         item.setPrice(request.getPrice());
         item.setCategory(request.getCategory().trim());
         item.setCampus(StringUtils.hasText(request.getCampus()) ? request.getCampus().trim() : DEFAULT_CAMPUS);
-        item.setContactInfo(trimToNull(request.getContactInfo()));
+        // 编辑弹窗可能不回传联系方式，空值时保留原值，避免把已填写的联系方式清空
+        item.setContactInfo(StringUtils.hasText(request.getContactInfo())
+                ? request.getContactInfo().trim()
+                : item.getContactInfo());
         item.setImageUrl(trimToNull(request.getImageUrl()));
         itemMapper.updateById(item);
         cacheService.evictAll();
@@ -328,6 +356,22 @@ public class ItemService {
         vo.setIsTop(item.getIsTop());
         vo.setCreateTime(item.getCreateTime());
         return vo;
+    }
+
+    private AiRiskResponse reviewRisk(String title, String description, String category, BigDecimal price) {
+        AiRiskRequest request = new AiRiskRequest();
+        request.setTitle(title);
+        request.setDescription(description);
+        request.setCategory(category);
+        request.setPrice(price);
+        return aiRiskService.review(request);
+    }
+
+    private String buildRiskMessage(String prefix, AiRiskResponse risk) {
+        String reasons = risk.getReasons().isEmpty()
+                ? "检测到高风险内容，请修改后再试"
+                : String.join("；", risk.getReasons());
+        return prefix + "：" + reasons;
     }
 
     private String trimToNull(String value) {
