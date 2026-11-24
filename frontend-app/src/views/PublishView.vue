@@ -50,6 +50,33 @@
           </div>
           <el-input v-model="form.description" type="textarea" :rows="4" maxlength="2000" show-word-limit placeholder="成色、入手时间、使用情况、瑕疵等，写清楚更好卖～"></el-input>
           <div class="ai-tip" v-if="aiGenerated">✨ 已根据标题和分类生成文案，可直接修改后再发布</div>
+          <div class="risk-bar">
+            <el-button
+              class="ai-btn risk-btn"
+              size="small"
+              round
+              :loading="riskChecking"
+              :disabled="riskChecking"
+              @click="runRiskCheck">
+              🛡 {{ riskChecking ? '检测中…' : 'AI 风险检测' }}
+            </el-button>
+            <span class="risk-hint">仅作发布前参考，不替代服务端审核</span>
+          </div>
+          <el-alert
+            v-if="riskResult"
+            class="risk-alert"
+            :type="riskAlertType"
+            :title="riskAlertTitle"
+            show-icon
+            :closable="false">
+            <ul v-if="riskReasons.length" class="risk-list">
+              <li v-for="(r, i) in riskReasons" :key="'r' + i">{{ r }}</li>
+            </ul>
+            <ul v-if="riskSuggestions.length" class="risk-list">
+              <li v-for="(s, i) in riskSuggestions" :key="'s' + i">建议：{{ s }}</li>
+            </ul>
+            <div v-if="riskResult.degraded && riskResult.notice" class="risk-notice">{{ riskResult.notice }}</div>
+          </el-alert>
         </div>
 
         <div class="grid-2">
@@ -89,7 +116,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { api } from '@/api/http';
@@ -101,10 +128,44 @@ const campuses = ['上海路', '前湖'];
 const submitting = ref(false);
 const aiLoading = ref(false);
 const aiGenerated = ref(false);
+const riskChecking = ref(false);
+const riskResult = ref(null);
 const form = reactive({
   title: '', description: '', price: null,
   category: '', campus: '前湖', contactInfo: '', imageUrl: ''
 });
+
+const riskAlertType = computed(() => {
+  const level = riskResult.value && riskResult.value.riskLevel;
+  if (level === 'HIGH') return 'error';
+  if (level === 'MEDIUM') return 'warning';
+  return 'success';
+});
+
+const riskAlertTitle = computed(() => {
+  const level = riskResult.value && riskResult.value.riskLevel;
+  if (level === 'HIGH') return '检测到高风险，发布将被拦截';
+  if (level === 'MEDIUM') return '检测到中风险，可发布但建议修改';
+  return '未发现明显风险，可以发布';
+});
+
+const riskReasons = computed(() => {
+  const r = riskResult.value;
+  if (!r || (r.riskLevel !== 'HIGH' && r.riskLevel !== 'MEDIUM')) return [];
+  return r.reasons || [];
+});
+
+const riskSuggestions = computed(() => {
+  const r = riskResult.value;
+  if (!r || r.riskLevel !== 'MEDIUM') return [];
+  return r.suggestions || [];
+});
+
+// 标题/描述/分类/价格任一项变化，旧检测结果即失效
+watch(
+  () => [form.title, form.description, form.category, form.price],
+  () => { riskResult.value = null; }
+);
 
 function goBack() {
   if (history.length > 1) history.back();
@@ -159,6 +220,28 @@ async function generateDesc() {
   }
 }
 
+/** AI 风险预检：只做提示，不阻断发布，真正的拦截在服务端 */
+async function runRiskCheck() {
+  if (riskChecking.value) return;
+  const title = form.title.trim();
+  if (!title) {
+    ElMessage.warning('请先填写标题');
+    return;
+  }
+  riskResult.value = null;
+  riskChecking.value = true;
+  try {
+    const payload = { title, description: form.description.trim() };
+    if (form.category) payload.category = form.category;
+    if (form.price) payload.price = Number(form.price);
+    riskResult.value = await api.post('/api/ai/risk-check', payload);
+  } catch (e) {
+    ElMessage.error(e.message || '风险检测失败，请稍后重试');
+  } finally {
+    riskChecking.value = false;
+  }
+}
+
 async function submit() {
   if (!form.title.trim()) return ElMessage.warning('请填写商品标题');
   if (!form.price || Number(form.price) <= 0) return ElMessage.warning('价格必须大于 0');
@@ -168,7 +251,7 @@ async function submit() {
 
   submitting.value = true;
   try {
-    await api.post('/api/item', {
+    const data = await api.post('/api/item', {
       title: form.title.trim(),
       description: form.description.trim(),
       price: Number(form.price),
@@ -177,10 +260,35 @@ async function submit() {
       contactInfo: form.contactInfo.trim(),
       imageUrl: form.imageUrl || null
     });
-    await ElMessageBox.alert('发布成功', '青售提示', { confirmButtonText: '返回首页', type: 'success' });
-    router.push('/');
+    const warnings = data && Array.isArray(data.riskWarnings) ? data.riskWarnings : [];
+    if (warnings.length) {
+      const text = warnings.map((w, i) => `${i + 1}. ${w}`).join('\n');
+      await ElMessageBox.alert(text, '发布成功（有风险提示）', {
+        type: 'warning',
+        confirmButtonText: '返回首页',
+        customStyle: {
+          whiteSpace: 'pre-line',
+          textAlign: 'left',
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere'
+        }
+      }).catch(() => {});
+      riskResult.value = null;
+      router.push('/');
+    } else {
+      await ElMessageBox.alert('发布成功', '青售提示', { confirmButtonText: '返回首页', type: 'success' }).catch(() => {});
+      riskResult.value = null;
+      router.push('/');
+    }
   } catch (e) {
-    ElMessage.error(e.message || '发布失败，请稍后重试');
+    if (e.status === 400) {
+      await ElMessageBox.alert(e.message || '发布内容存在高风险，请修改后再试', '发布被拦截', {
+        type: 'error',
+        confirmButtonText: '知道了'
+      }).catch(() => {});
+    } else {
+      ElMessage.error(e.message || '发布失败，请稍后重试');
+    }
   } finally {
     submitting.value = false;
   }
@@ -219,6 +327,21 @@ async function submit() {
   font-weight: 600;
 }
 .ai-tip { margin-top: 6px; font-size: 12px; color: #0d9488; }
+.risk-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.risk-btn {
+  --el-button-bg-color: #f8fafc;
+  --el-button-border-color: #dbe5e2;
+  --el-button-text-color: #557a74;
+  --el-button-hover-bg-color: #f0fdfa;
+  --el-button-hover-border-color: #14b8a6;
+  --el-button-hover-text-color: #0f766e;
+  font-weight: 600;
+}
+.risk-hint { font-size: 11px; color: #9bb5b0; }
+.risk-alert { margin-top: 10px; border-radius: 12px; }
+.risk-list { margin: 4px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word; }
+.risk-list li { margin: 2px 0; }
+.risk-notice { margin-top: 6px; font-size: 12px; color: #94a3b8; overflow-wrap: anywhere; }
 .field .req { color: #ef4444; margin-left: 2px; }
 .tip { font-size: 11px; color: #9bb5b0; margin-top: 6px; }
 .upload-box {

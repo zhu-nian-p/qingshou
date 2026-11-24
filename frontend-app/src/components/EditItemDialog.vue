@@ -63,7 +63,7 @@
 
 <script setup>
 import { reactive, ref, computed, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { api, API_BASE } from '@/api/http';
 import { imgSrc, onImgError } from '@/utils/media';
 
@@ -157,7 +157,15 @@ async function save() {
     emit('update:modelValue', false);
     emit('saved');
   } catch (e) {
-    ElMessage.error(e.message || '保存失败');
+    if (e.status === 400) {
+      // 高风险被服务端拦截：弹窗保持打开，方便用户修改后重试
+      await ElMessageBox.alert(e.message || '修改内容存在高风险，请修改后再试', '修改被拦截', {
+        type: 'error',
+        confirmButtonText: '知道了'
+      }).catch(() => {});
+    } else {
+      ElMessage.error(e.message || '保存失败');
+    }
   } finally {
     saving.value = false;
   }
