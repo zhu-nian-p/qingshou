@@ -1,8 +1,38 @@
-# 青售 · 校园二手交易平台
+# 青售：AI 风控护航的校园二手交易平台
 
-一个面向校园的二手交易平台：Spring Boot 3 + MySQL 8 + Redis，前端为 Vite + Vue3 + Element Plus 工程。
+面向校园的二手交易平台：Spring Boot 3 + Vue 3 + MySQL + Redis，主打 **AI 发布风险审核**——违禁品、诈骗、代写等内容在发布前被拦截。
 
-> 项目完成总结（存档版）：[docs/项目完成总结.md](docs/项目完成总结.md)
+**TRAE AI 创造力大赛 · 校园生活赛道**
+
+## 演示视频
+
+> 上传 B 站后，把这一行替换成视频链接：`https://www.bilibili.com/video/BVxxxxxxx`
+
+## 项目截图
+
+| 首页 | AI 风险检测 |
+|---|---|
+| ![首页](docs/screenshots/effects/01-home.png) | ![AI 风险检测](docs/screenshots/effects/04-risk-high.png) |
+
+| 发布被拦截 | 管理后台 |
+|---|---|
+| ![发布被拦截](docs/screenshots/effects/05-blocked.png) | ![管理后台](docs/screenshots/effects/08-admin.png) |
+
+## 核心亮点
+
+- **AI 发布风险审核**：本地风险词库 + DeepSeek 语义审核，高风险拦截、中风险提示、低风险放行；AI 不可用时自动降级到本地规则。
+- **完整交易闭环**：注册、发布、下单、卖家确认、买家确认面交、卖家确认完成、评价、置顶申请、举报与后台审核。
+- **校园场景安全设计**：学号登录、南航邮箱验证、双向确认、联系方式掩码、限流、防占单、管理员审计。
+- **可运行、可演示**：前后端分离，支持移动端，管理后台含数据看板与举报处理。
+
+## 快速体验
+
+1. 启动 Docker Desktop，执行 `docker compose up -d`
+2. 双击 `start-backend.cmd`
+3. 双击 `start-frontend.cmd`
+4. 浏览器打开 `http://localhost:5174`，用 `202400001 / 123456` 登录
+
+> 完整启动步骤、接口、数据库迁移和测试说明见下文；项目总结见 [docs/项目完成总结.md](docs/项目完成总结.md)。
 
 ## 技术栈
 
@@ -12,7 +42,7 @@
 | 数据库 | MySQL 8.0（Docker）、Redis 7（Docker） |
 | 邮件 | QQ 邮箱 SMTP（smtp.qq.com:465 + SSL），用于学校邮箱验证码注册 |
 | 前端 | Vue 3 + Vite 6 + Element Plus 2.14 + Pinia + Vue Router + ECharts（`frontend-app`） |
-| AI | DeepSeek Chat Completions（可选，未配置 Key 时返回模拟文案） |
+| AI | DeepSeek Chat Completions：AI 商品文案 + AI 发布风险审核（可选，未配置 Key 时本地降级） |
 
 ## 目录结构
 
@@ -42,7 +72,7 @@ campus-market/
 │   │   └── styles/              全局主题样式
 │   ├── vite.config.js           dev 端口 5174 + /api、/uploads、/ws 代理
 │   └── README.md                前端工程运行说明
-├── sql/                         增量迁移脚本（002 ~ 014）
+├── sql/                         增量迁移脚本（002 ~ 015）
 ├── docs/                        文档与截图
 ├── init.sql                     全量建库建表脚本
 ├── docker-compose.yml           MySQL + Redis
@@ -63,7 +93,7 @@ campus-market/
    docker compose up -d
    docker compose ps        # mysql / redis 两个容器都应为 healthy
    ```
-   > 首次初始化会自动执行 `init.sql`；已有数据库升级时，按顺序执行 `sql/002 ~ 014` 的增量脚本。
+   > 首次初始化会自动执行 `init.sql`；已有数据库升级时，按顺序执行 `sql/002 ~ 015` 的增量脚本。
 3. **启动后端**：双击 `start-backend.cmd`
    - 成功标志：日志出现 `Tomcat started on port 8080` 和 `Started CampusMarketApplication`
    - 后端地址：http://localhost:8080
@@ -268,6 +298,24 @@ public Result<?> publish(...) { ... }
 6. 标题为空时不会发请求，直接提示先填写标题
 
 ![AI 文案](<docs/screenshots/publish-ai.png>)
+
+## AI 发布风险审核（参赛新增）
+
+- **接口**：`POST /api/ai/risk-check`，入参 `title`、`description`、`category`、`price`，返回 `riskLevel`、`blocked`、`categories`、`reasons`、`suggestions`、`source`、`degraded`。
+- **服务端强制校验**：`ItemService.publish` / `update` 在入库前调用；HIGH 直接 400 拦截，MEDIUM 允许发布并回传 `riskWarnings`。
+- **双层风控**：先跑本地风险词库（违禁品、诈骗、代写、侵权、站外交易），再调用 DeepSeek 做语义判断；本地 HIGH 不消耗 AI 调用。
+- **可用性兜底**：AI 超时（连接 2s / 读取 4s）、无 Key、返回非法 JSON 时自动降级到本地规则，不向前端抛 5xx。
+- **前端交互**：发布页「🛡 AI 风险检测」预检；LOW 绿色、MEDIUM 黄色、HIGH 红色；发布被拦截时停留当前页并保留表单。
+
+![高风险拦截](docs/screenshots/effects/04-risk-high.png)
+
+## TRAE 使用记录
+
+- 使用 TRAE CN 完成：项目通读、AI 风险审核方案设计、后端 DTO/Service/Controller、前端发布页与编辑弹窗、联调排错。
+- 关键提交：
+  - `20971ee feat: AI 发布风险审核后端（TRAE）`
+  - `2664009 feat: 发布页接入 AI 风险检测（TRAE）`
+- TRAE 对话截图与代码 diff 随参赛帖材料一并提交。
 
 ## 关键配置
 
